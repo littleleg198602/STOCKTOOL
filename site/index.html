@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>StockTool — test propojení</title>
+<style>
+  :root{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#edf3ff;background:#08121f}
+  *{box-sizing:border-box}
+  body{min-height:100vh;margin:0;display:grid;place-items:center;padding:24px;background:radial-gradient(ellipse at top right,#123a52 0,transparent 50%),#08121f}
+  main{width:min(100%,760px);background:rgba(18,32,48,.88);border:1px solid #2c4657;border-radius:22px;padding:clamp(26px,5vw,52px);box-shadow:0 20px 70px #0005}
+  .brand{letter-spacing:.2em;font-size:14px;font-weight:750;color:#b7c8d8}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#32d5a2;margin-right:9px;box-shadow:0 0 0 5px #32d5a21b}
+  h1{font-size:clamp(32px,5vw,54px);line-height:1.08;margin:28px 0 16px}
+  h1 span{color:#45e0ad}
+  p{font-size:17px;line-height:1.7;color:#bfd0dd}
+  .status{display:inline-flex;align-items:center;color:#d8fcef;background:#104634;border:1px solid #26765a;border-radius:999px;padding:10px 15px;font-size:14px;font-weight:650}
+  footer{border-top:1px solid #294050;padding-top:24px;margin-top:34px;color:#91a9ba;font-size:13px}
+</style>
+</head>
+<body>
+<main>
+  <div class="brand"><span class="dot"></span>STOCKTOOL.EU</div>
+  <h1>Propojení <span>funguje.</span></h1>
+  <p>Tato testovací stránka potvrzuje, že jsme nasadili obsah z GitHubu na webhosting FORPSI. Dalším krokem bude hlavní katalog webových aplikací.</p>
+  <div class="status">✓ GitHub → FTPS → FORPSI</div>
+  <footer>StockTool · Testovací prostředí /test/ · Bez přístupu k obchodním datům</footer>
+</main>
+</body>
+</html>
