@@ -12,6 +12,6 @@ Základ projektu **stocktool.eu** – platforma webových finančních a analyti
 3. Otevři Actions → Deploy test to FORPSI → Run workflow (větev main).
 4. Po úspěšném běhu ověř `https://stocktool.eu/test/`.
 
-Použitý server: `ftpx.forpsi.com`, přihlašovací jméno: `www.stocktool.eu`, FTPS (explicitní TLS) na portu 21.
+Použitý server: `ftpx.forpsi.com`, přihlašovací jméno: `f0476608.multi`, FTPS (explicitní TLS) na portu 21.
 
 **Pozor:** Tento workflow nahrává jen obsah složky `site/` do vzdálené složky `/www/test/`. Nesahá na hlavní `/www/index.*` stránku.
