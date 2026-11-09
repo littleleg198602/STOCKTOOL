@@ -18,7 +18,7 @@ jobs:
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
           server: ftpx.forpsi.com
-          username: f0476608.multi
+          username: www.stocktool.eu
           password: ${{ secrets.FORPSI_FTP_PASSWORD }}
           protocol: ftps
           port: 21
