@@ -1,0 +1,27 @@
+name: Deploy test to FORPSI
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-test:
+    name: Upload /test/ via FTPS
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Publish test website
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ftpx.forpsi.com
+          username: www.stocktool.eu
+          password: ${{ secrets.FORPSI_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./site/
+          server-dir: ./www/test/
+          log-level: standard
