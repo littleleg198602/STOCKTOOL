@@ -1,111 +1,126 @@
 # STOCKTOOL.EU
 
-Finanční analytická webová platforma. První aplikace: **Data Manager – přímá synchronizace MT5**.
+Webová platforma s analytickými nástroji. Data Manager propojujeme s MetaTraderem 5
+**přímo přes již používanou Python integraci**: bez CSV, bez exportéru a bez jednoho
+Expert Advisora na každý symbol.
 
-## Aktuální stav
-
-- Web s katalogem aplikací: \`site/\`.
-- Data Manager: \`site/data-manager/\`.
-- Serverové PHP API: \`site/data-manager/api/\`.
-- StockToolBridge – **Expert Advisor přímo v MT5**, nikoliv CSV exportér: \`mt5/StockToolBridge.mq5\`.
-
-## Přímá synchronizace MT5 → StockTool
+## Jak funguje hromadná synchronizace MT5
 
 \`\`\`
-MetaTrader 5 (běžící na PC)
-  └── StockToolBridge.mq5 (EA – jen čte svíčky, neobchoduje)
-        └── HTTPS POST /test/data-manager/api/ingest.php
-              └── Soukromé soubory mimo www (stocktool-private/data/)
-                    └── /test/data-manager/api/candles.php
-                          └── Webový graf a tabulka na Data Manageru
+MetaTrader 5 (běžící na Windows)
+  └── jeden stocktool_mt5_sync.py (čte až 700+ akcií automaticky)
+        └── HTTPS API na FORPSI
+              └── soukromé datové úložiště mimo www
+                    └── Data Manager na stocktool.eu/test/data-manager/
 \`\`\`
 
-**Není potřeba CSV, Python exportér ani další cloud.** Svíčky odesílá automaticky přímo terminál MT5. Prohlížeč se ovšem nemůže sám přímo připojit k procesu MT5 běžícímu na Windows, proto používáme modul EA a webové API.
+**Nejde o program pro ruční export.** Synchronizátor čte svíčky přímo přes
+\`MetaTrader5\` Python knihovnu, zpracuje seznam dostupných symbolů a pošle je
+na zabezpečený web. Nepotřebuje otevřené grafy ani vlastní EA v MT5.
+Nepoužívá tradingové funkce a nikdy nezadává obchody.
 
-**Důležité:** Odesílání nových svíček vyžaduje spuštěný MT5 i připojení k internetu. První verze synchronizuje vybraný symbol a timeframe, obvykle jeden EA na každý požadovaný pár. Při startu dožene až 5 000 dokončených svíček po dávkách, další svíčky posílá automaticky. Celkový soubor uchovává posledních 20 000 svíček na dataset. Web čte nejnovějších maximálně 5 000.
+### Co už je v repozitáři
 
-### 1. Nejprve publikuj web na FORPSI
+- \`scripts/stocktool_mt5_sync.py\` — jeden synchronizátor pro mnoho symbolů.
+- \`scripts/StockTool-MT5-START.bat\` — spuštění synchronizace jedním kliknutím.
+- \`site/data-manager/\` — webový graf, přihlášení k API, vyhledávání tickerů.
+- \`site/data-manager/api/\` — PHP příjem a čtení dat z neveřejného úložiště.
 
-Ve Windows spusť stávající **StockTool Deploy v3**. Nasazuje pouze obsah adresáře \`site/\` do:
+### První spuštění na Windows
 
-\`/stocktool.eu/www/test/\`
+1. Otevři MT5, přihlas se ke svému brokerovi, nech terminál zapnutý.
+2. Do stejné složky na počítači ulož ze složky \`scripts/\` oba soubory
+   \`StockTool-MT5-START.bat\` a \`stocktool_mt5_sync.py\`.
+3. Dvojklik na \`StockTool-MT5-START.bat\` (na počítači musí být Python).
+4. Při prvním spuštění jednou zadáš stejný soukromý API klíč jako na FORPSI.
+   V této verzi se ve Windows uloží chráněný DPAPI, nikoli do GitHubu.
+5. Program projde dostupné akcie od brokera a postupně pošle dokončené D1
+   svíčky do FORPSI. Dále při běžícím MT5 automaticky kontroluje nové svíčky.
+6. Otevři \`https://www.stocktool.eu/test/data-manager/\`, přihlas se klíčem a
+   vyber ticker. Web kontroluje aktualizace každých 30 sekund.
 
-Ověř v prohlížeči:
+**Pozor:** detekce akcií je založena na názvech skupin brokerových symbolů
+(např. Stocks, Shares, Equities). Pokud má broker atypické názvy skupin,
+\`--universe stocks\` nemusí najít všech 700 požadovaných akcií. Nejprve ověř
+výpis dostupných akcií; alternativou je \`--universe marketwatch\` (viditelné
+symboly v Market Watch, mohou zahrnovat i neakcie) nebo \`--universe file\`
+s TXT seznamem přesných brokerových názvů (jedna akcie na řádek).
+TXT seznam je jen výběr tickerů, **nejde o export cen ani svíček**.
 
-\`https://www.stocktool.eu/test/data-manager/api/status.php\`
+Diagnostika bez odesílání dat:
+\`\`\`powershell
+py -3 scripts/stocktool_mt5_sync.py --discover --max-symbols 20000
+\`\`\`
 
-Musíš vidět JSON (např. \`{"ok":true,"configured":false,...}\`). Pokud se zobrazí zdrojový PHP kód, HTML chyba nebo soubor ke stažení, **zastav se**: PHP není správně nastavené, nesmí se nahrávat API klíče.
+Jednorázový test na maximálně 10 akciích:
+\`\`\`powershell
+py -3 scripts/stocktool_mt5_sync.py --once --max-symbols 10 --initial-bars 100
+\`\`\`
 
-### 2. Připrav neveřejný klíč a serverovou složku
+Běžná automatická synchronizace:
+\`\`\`powershell
+py -3 scripts/stocktool_mt5_sync.py --loop --max-symbols 700 --timeframe D1 --initial-bars 300 --interval-minutes 15
+\`\`\`
 
-**POZOR: před manipulací s klíčem změň připojení WinSCP z obyčejného FTP na FTPS / TLS Explicit (port 21).** Obyčejné FTP posílá přihlašovací údaje nezabezpečeně.
+Pro H1 lze spustit jinou instanci s parametrem \`--timeframe H1\`. Pro větší
+zátěž ale nejprve ověř výkon a limit hostingového tarifu.
 
-Ve WinSCP na FTP hlavního multihostingu založ mimo \`www\`:
+**Jak funguje postupná aktualizace:** poprvé se odešle až 300 uzavřených
+D1 svíček na instrument; pak se přenášejí nové dokončené svíčky. Poslední
+úspěšně synchronizovaný čas se ukládá na Windows do \`~/.stocktool/\`, aby se
+po restartu nestahovala znovu celá historie. Po delším výpadku se pokusí
+doplnit všechny dostupné svíčky od posledního úspěšného přenosu.
 
+**Limit:** Python MT5 získá jen svíčky, které daný broker v terminálu nabízí;
+historie respektuje také nastavení \`Max. bars in chart\` v MT5. Někteří brokeři
+700 požadovaných akcií vůbec nenabízejí nebo mají jiné názvy.
+
+### Webové API na FORPSI
+
+Před synchronizací je nutné jednou nakonfigurovat server. To jsme v projektu
+již začali: \`/test/data-manager/api/status.php\` má odpovědět JSON s
+\`"configured":true\`.
+
+Hlavní hosting je u FORPSI, soubory nahráváme lokálně přes WinSCP a
+\`Deploy-StockTool.bat\` v3, do:
+\`/stocktool.eu/www/test/\`.
+
+Soukromá konfigurace zůstává **mimo** veřejný web:
 \`\`\`
 /stocktool.eu/
-├── www/
-│   └── test/
-│       └── data-manager/
-│           └── api/           ← veřejně dostupné PHP soubory, BEZ klíče
+├── www/test/data-manager/api/
 └── stocktool-private/
-    └── config.php             ← SOUKROMÝ soubor, NEVEŘEJNÝ, NEPATŘÍ do GitHubu
+    ├── config.php     # API klíč; NEPATŘÍ do GitHubu
+    └── data/          # automaticky vytvářené datové soubory
 \`\`\`
 
-V PowerShellu na Windows vygeneruj náhodný klíč:
+Knihovna bere tajný klíč z proměnné prostředí \`STOCKTOOL_API_KEY\`, nebo si
+ho při prvním spuštění vyžádá a lokálně zašifruje pomocí Windows DPAPI.
+Klíč nikdy nesdílej ve zprávách ani repozitáři. Vždy používej HTTPS
+k API a **FTPS** při nasazování přes WinSCP.
 
-\`\`\`powershell
-[guid]::NewGuid().ToString('N') + [guid]::NewGuid().ToString('N')
-\`\`\`
+Pokud endpoint \`/test/data-manager/api/status.php\` vrací přímo PHP zdrojový
+kód místo JSON, API je chybně nastavené a nesmí se použít s klíči.
 
-Výsledkem je 64znakový náhodný řetězec. Ve WinSCP vytvoř soubor \`/stocktool.eu/stocktool-private/config.php\` s tímto obsahem (vlož svůj vlastní klíč):
+### Kapacita a bezpečnost
 
-\`\`\`php
-<?php
-return [
-    'api_key' => 'ZDE_VLOZ_VLASTNI_NAHODNY_KLIC'
-];
-\`\`\`
+- Doporučené pilotní ověření: 10 akcií, pak 100, potom cca 700.
+- Přenos omezuje pauza mezi požadavky; při chybném HTTP serveru používá retry.
+- Na hostingu se ukládají maximálně poslední 20 000 svíček na jeden
+  symbol/timeframe, web najednou čte posledních 5 000. Výchozí D1 přenos
+  posílá při prvním cyklu až 300 svíček na symbol.
+- Metadata datasetu jsou zvlášť, aby seznam 700 akcií nepotřeboval číst
+  700 velkých souborů.
+- Při vypnutí počítače nebo MT5 se synchronizace zastaví a po spuštění
+  se pokusí chybějící svíčky doplnit.
+- Každý broker má jinou nabídku akcií a tick volume není skutečný burzovní
+  obchodovaný objem. Ověř podmínky brokera před přeposíláním či zveřejněním dat.
 
-Vzor je v \`mt5/private-config.example.php\`. Klíč nesdílej v chatu ani ve veřejném GitHubu. **Musí mít alespoň 32 znaků**. Soubor \`stocktool-private\` zůstane mimo veřejně přístupné \`www\`. Pokud hosting blokuje PHP přístup mimo \`www\`, bude nutné změnit umístění úložiště nebo využít hostovanou databázi.
+### Rozsah testování
 
-Po vytvoření configu znovu otevři \`https://www.stocktool.eu/test/data-manager/api/status.php\` – mělo by být \`"configured":true\`. Tento status neověřuje, zda je klíč správně zadaný, pouze přítomnost souboru.
+Repo obsahuje implementaci, ale přenos nelze považovat za úspěšně zprovozněný,
+dokud neproběhne test s tvým MT5 a hostingem FORPSI. Nejsou žádné závislosti
+na placeném cloudu; musíme ale ověřit výkon a kvóty sdíleného hostingu.
 
-### 3. Přidej modul přímo do MetaTraderu 5
-
-1. Otevři **MT5 → Soubor → Otevřít složku dat**.
-2. Přejdi do \`MQL5/Experts/\`.
-3. Ulož sem \`mt5/StockToolBridge.mq5\` z repozitáře a otevři ho v MetaEditoru, **F7 = kompilovat**.
-4. V MT5 otevři **Nástroje → Možnosti → Expertní poradci** a přidej do povolených WebRequest URL \`https://www.stocktool.eu\`.
-5. Připoj **StockToolBridge** na graf a nastav:
-   - \`InpApiKey\` – stejný klíč z neveřejného \`config.php\`.
-   - \`InpSymbol\` – prázdný = aktuální symbol grafu; jinak přesný název od brokera, např. \`XAUUSD\`.
-   - \`InpTimeframe\` – např. \`PERIOD_H1\`.
-   - \`InpInitialBars\` – např. \`500\` (max 5000).
-   - \`InpEverySeconds\` – např. \`60\`.
-
-V záložce **Experts** v MT5 kontroluj hlášky \`StockTool: synchronized...\` nebo případnou HTTP chybu. Modul neobsahuje žádné obchodní operace.
-
-**Před zadáním klíče vždy ověř, že adresa serveru je skutečně HTTPS s platným certifikátem.** Výchozí URL je \`https://www.stocktool.eu/test/data-manager/api/ingest.php\`. Pokud na tomto hostnamu HTTPS nefunguje, je potřeba nejdřív zapnout SSL u FORPSI; nepřecházej na HTTP.
-
-### 4. Otevři Data Manager
-
-\`https://www.stocktool.eu/test/data-manager/\`
-
-Do pole pro klíč vlož tentýž tajný klíč a klikni **Připojit**. Web načte datasety, graf a tabulku; automaticky je obnovuje každých 30 sekund. Klíč si drží jen v paměti otevřené záložky.
-
-**Známá omezení BETA:** Prohlížeč si data z MT5 nevyžádá sám; EA aktivně odesílá zvolený symbol/timeframe. Server zatím ukládá do souborů a nemusí zvládat velké množství současných uživatelů. OHLCV údaje jsou data konkrétního brokera, tick volume není totéž co burzovní obchodovaný objem. Před veřejným zpřístupněním ověř licenci k tržním datům.
-
-## Repo a nasazování
-
-Repo: https://github.com/littleleg198602/STOCKTOOL
-
-- Vývoj v GitHub / Codex.
-- Publikace z lokálního Windows přes **WinSCP** a připravený \`Deploy-StockTool.bat\` v3.
-- Nasazení pouze do \`/stocktool.eu/www/test/\`, hlavní web necháváme beze změny.
-- Dřívější GitHub Actions FTPS workflow se nepoužívá.
-- V repozitáři **nejsou žádné produkční klíče** a nikdy tam nesmějí být.
-
-## Další fáze
-
-Po otestování sestavení EA a PHP API na FORPSI: více symbolů/timeframů z jediného modulu, doplňování historie po výpadku, centrální MySQL úložiště, řízení uživatelů a napojení BUY / SHORT / Backtesting.
+Dřívější \`mt5/StockToolBridge.mq5\` (jedna instance na graf) byl opuštěn.
+Data Manager nyní používá jeden lokální Python bridge pro hromadné načítání.
