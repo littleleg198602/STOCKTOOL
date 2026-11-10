@@ -76,6 +76,35 @@ def protected_bytes(value: bytes, decrypt: bool) -> bytes:
         kernel32.LocalFree(ctypes.cast(result.pbData, ctypes.c_void_p))
 
 
+def ask_api_key() -> str:
+    """Open a native password dialog: Ctrl+V works reliably on Windows."""
+    try:
+        import tkinter as tk
+        from tkinter import simpledialog
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes("-topmost", True)
+        try:
+            result = simpledialog.askstring(
+                "StockTool – API klíč",
+                "Vlož svůj StockTool API klíč z FORPSI (Ctrl+V):\n"
+                "Znakům se kvůli ochraně klíče zobrazují pouze hvězdičky.",
+                parent=root,
+                show="*",
+            )
+        finally:
+            root.destroy()
+        if result is None:
+            raise RuntimeError("Zadání klíče bylo zrušeno.")
+        return result.strip()
+    except (ImportError, RuntimeError) as exc:
+        if isinstance(exc, RuntimeError) and str(exc) == "Zadání klíče bylo zrušeno.":
+            raise
+        print("Grafické okno není dostupné; použij pravé tlačítko pro vložení klíče.")
+        print("V konzoli se vložené znaky z bezpečnostních důvodů nezobrazují.")
+        return getpass.getpass("StockTool API klíč: ").strip()
+
+
 def get_api_key(reset: bool = False) -> str:
     env = os.getenv("STOCKTOOL_API_KEY", "").strip()
     if env:
@@ -91,7 +120,7 @@ def get_api_key(reset: bool = False) -> str:
         raise ValueError("Dříve uložený klíč je příliš krátký.")
     print("\nPRVNÍ SPUŠTĚNÍ: vlož soukromý StockTool API klíč z FORPSI.")
     print("Klíč se uloží šifrovaně pomocí Windows DPAPI, nikoliv do GitHubu.\n")
-    key = getpass.getpass("StockTool API klíč: ").strip()
+    key = ask_api_key()
     if len(key) < 32 or "\r" in key or "\n" in key:
         raise ValueError("Klíč musí mít alespoň 32 znaků.")
     PRIVATE_FOLDER.mkdir(parents=True, exist_ok=True)
