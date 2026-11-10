@@ -1,551 +1,363 @@
 "use strict";
-
-/**
- * StockTool Data Manager BETA
- * Browser-only OHLCV importer & viewer. No outbound requests, no remote database.
- * Times in CSV/TSV are interpreted as UTC and never silently converted.
- */
+// StockTool MT5 Data Manager – authenticated browser viewer for the MT5->PHP bridge.
+// Credentials stay in memory only; no cookies, localStorage, sessionStorage or URL tokens.
 (() => {
   const $ = id => document.getElementById(id);
-  const PERIODS = { M1: 1, M5: 5, M15: 15, M30: 30, H1: 60, H4: 240, D1: 1440, W1: 10080 };
-  const DATABASE = "stocktool-data-manager-v1";
-  const STORE = "datasets";
-  const MAX_FILE_BYTES = 20 * 1024 * 1024;
-  const MAX_BARS = 100000;
-  const TABLE_SIZE = 20;
+  const API = "./api/";
+  const PERIODS = { M1:1, M5:5, M15:15, M30:30, H1:60, H4:240, D1:1440, W1:10080 };
   const DAY = 86400000;
-  const numberFmt = new Intl.NumberFormat("cs-CZ");
-  const memory = new Map();
-  let db = null;
-  let memoryOnly = false;
-  let datasets = [];
-  let selectedId = "";
-  let fileToImport = null;
-  let displayed = [];
+  const FMT = new Intl.NumberFormat("cs-CZ");
+  const PAGE_SIZE = 20;
+  let apiKey = "";
+  let catalog = [];
+  let selected = "";
+  let rawBars = [];
+  let aggregated = [];
   let chartBars = [];
   let page = 0;
+  let busy = false;
   let toastTimer;
 
-  const fmtPrice = value => {
-    if (!Number.isFinite(value)) return "—";
-    const decimalPlaces = Math.abs(value) >= 1000 ? 2 : Math.abs(value) >= 1 ? 5 : 7;
-    return new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: decimalPlaces }).format(value);
-  };
-  const fmtTime = time => new Date(time).toISOString().slice(0, 16).replace("T", " ") + " UTC";
-
-  function message(text, isError = false) {
-    const toast = $("toast");
-    toast.textContent = text;
-    toast.classList.toggle("error", isError);
-    toast.classList.add("visible");
+  function flash(text, error = false) {
+    const el = $("toast");
+    el.textContent = text;
+    el.classList.toggle("error", error);
+    el.classList.add("visible");
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toast.classList.remove("visible"), 4800);
+    toastTimer = setTimeout(() => el.classList.remove("visible"), 4800);
   }
+  const num = n => FMT.format(n);
+  const money = n => {
+    if (!Number.isFinite(n)) return "—";
+    return new Intl.NumberFormat("cs-CZ", {
+      maximumFractionDigits: Math.abs(n) >= 1000 ? 2 : Math.abs(n) >= 1 ? 5 : 7
+    }).format(n);
+  };
+  const stamp = t => t ? new Date(t).toISOString().slice(0, 16).replace("T", " ") + " UTC" : "—";
 
-  function openDatabase() {
-    return new Promise((resolve, reject) => {
-      if (!("indexedDB" in window)) return reject(new Error("IndexedDB není dostupné."));
-      const req = indexedDB.open(DATABASE, 1);
-      req.onupgradeneeded = () => {
-        if (!req.result.objectStoreNames.contains(STORE)) req.result.createObjectStore(STORE, { keyPath: "id" });
-      };
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error || new Error("Databáze není přístupná."));
-      req.onblocked = () => reject(new Error("Databáze je zablokovaná jiným oknem."));
-    });
-  }
-
-  function transaction(method, dataOrId) {
-    if (memoryOnly) {
-      if (method === "getAll") return Promise.resolve([...memory.values()]);
-      if (method === "put") { memory.set(dataOrId.id, dataOrId); return Promise.resolve(); }
-      if (method === "delete") { memory.delete(dataOrId); return Promise.resolve(); }
+  async function getJson(uri, authorized = true) {
+    const headers = authorized ? { "X-StockTool-Key": apiKey } : {};
+    const result = await fetch(API + uri, { headers, cache:"no-store" });
+    let data;
+    try { data = await result.json(); } catch {
+      throw new Error("API nevrátilo JSON. Ověř podporu PHP na FORPSI.");
     }
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE, method === "getAll" ? "readonly" : "readwrite");
-      const store = tx.objectStore(STORE);
-      let result;
-      const req = method === "getAll" ? store.getAll() : method === "put" ? store.put(dataOrId) : store.delete(dataOrId);
-      req.onsuccess = () => { result = req.result; };
-      tx.oncomplete = () => resolve(result);
-      tx.onerror = () => reject(tx.error || new Error("Operace s databází selhala."));
-      tx.onabort = () => reject(tx.error || new Error("Operace byla přerušena."));
-    });
+    if (!result.ok || !data.ok) {
+      const details = {
+        not_configured: "Na FORPSI chybí neveřejný config.php.",
+        invalid_private_configuration: "Na FORPSI je neplatný soukromý config.php.",
+        invalid_api_key: "Nesprávný přístupový klíč.",
+        storage_unavailable: "Serverové úložiště není dostupné.",
+        dataset_not_found: "Dataset již neexistuje."
+      };
+      throw new Error(details[data.error] || "Chyba serveru (" + result.status + ").");
+    }
+    return data;
   }
 
-  async function refreshDatasets(preferredId = selectedId) {
-    datasets = (await transaction("getAll")).sort((a, b) => b.updatedAt - a.updatedAt);
-    const selected = datasets.find(d => d.id === preferredId);
-    selectedId = selected ? selected.id : (datasets[0] ? datasets[0].id : "");
-    renderDatasetList();
-    setActive();
+  function connectedState(active) {
+    $("connect-button").disabled = active;
+    $("disconnect-button").disabled = !active;
+    $("refresh-button").disabled = !active;
+    $("connection-label").textContent = active ? "Připojeno k webovému API" : "Zatím nepřipojeno";
   }
 
-  function renderDatasetList() {
-    const root = $("datasets-list");
-    root.replaceChildren();
-    $("set-count").textContent = String(datasets.length);
-    if (!datasets.length) {
+  function renderCatalog() {
+    const list = $("datasets-list");
+    list.replaceChildren();
+    $("set-count").textContent = String(catalog.length);
+    if (!catalog.length) {
       const empty = document.createElement("div");
       empty.className = "empty-small";
-      empty.textContent = "Zatím žádná data.";
-      root.append(empty);
+      empty.textContent = apiKey ? "MT5 zatím neposlal žádné svíčky." : "Připoj se k API.";
+      list.append(empty);
       return;
     }
-    for (const data of datasets) {
+    catalog.forEach(item => {
+      const id = item.symbol + "|" + item.timeframe;
       const button = document.createElement("button");
-      button.className = "dataset-item" + (data.id === selectedId ? " is-active" : "");
       button.type = "button";
-      button.setAttribute("aria-pressed", String(data.id === selectedId));
-      const box = document.createElement("span");
-      const name = document.createElement("strong");
+      button.className = "dataset-item" + (selected === id ? " is-active" : "");
+      button.setAttribute("aria-pressed", String(selected === id));
+      const text = document.createElement("span");
+      const strong = document.createElement("strong");
+      strong.textContent = item.symbol;
       const small = document.createElement("small");
+      small.textContent = num(item.count) + " svíček · aktualizováno " + stamp(item.updated_at * 1000);
       const tf = document.createElement("span");
-      name.textContent = data.symbol;
-      small.textContent = numberFmt.format(data.bars.length) + " svíček · " + data.source;
-      tf.textContent = data.timeframe;
-      box.append(name, small);
-      button.append(box, tf);
+      tf.textContent = item.timeframe;
+      text.append(strong, small);
+      button.append(text, tf);
       button.addEventListener("click", () => {
-        selectedId = data.id;
+        selected = id;
         page = 0;
-        renderDatasetList();
-        setActive();
+        renderCatalog();
+        loadSelected().catch(error => flash(error.message, true));
       });
-      root.append(button);
+      list.append(button);
+    });
+  }
+
+  async function connect() {
+    const key = $("access-key").value.trim();
+    if (key.length < 32) return flash("Zadej svůj API klíč dlouhý alespoň 32 znaků.", true);
+    apiKey = key;
+    try {
+      $("connect-button").disabled = true;
+      await refreshAll(true);
+      $("access-key").value = "";
+      connectedState(true);
+      flash("Připojeno ke StockTool API. Synchronizované datasety jsou načtené.");
+    } catch (error) {
+      apiKey = "";
+      connectedState(false);
+      flash(error.message, true);
     }
   }
 
-  function periodBucket(time, tf) {
-    const minutes = PERIODS[tf];
+  function disconnect() {
+    apiKey = "";
+    catalog = [];
+    selected = "";
+    rawBars = [];
+    aggregated = [];
+    chartBars = [];
+    page = 0;
+    connectedState(false);
+    renderCatalog();
+    setEmpty("Čeká na připojení", "Zadej přístupový klíč.");
+    flash("Odpojeno. Přístupový klíč není uložen.");
+  }
+
+  async function refreshAll(first = false) {
+    if (!apiKey || busy) return;
+    busy = true;
+    try {
+      const result = await getJson("datasets.php");
+      catalog = result.datasets || [];
+      if (catalog.length) {
+        if (!catalog.some(d => d.symbol + "|" + d.timeframe === selected)) {
+          selected = catalog[0].symbol + "|" + catalog[0].timeframe;
+          page = 0;
+        }
+      } else {
+        selected = "";
+      }
+      renderCatalog();
+      if (selected) await loadSelected();
+      else setEmpty("Čeká na svíčky z MT5", "Zapni MT5 a připoj StockToolBridge ke grafu.");
+      $("api-status").textContent = "API dostupné · poslední kontrola " + new Date().toLocaleTimeString("cs-CZ");
+      connectedState(true);
+    } catch (error) {
+      $("api-status").textContent = "API chyba: " + error.message;
+      if (first) throw error;
+      flash(error.message, true);
+    } finally {
+      busy = false;
+    }
+  }
+
+  async function loadSelected() {
+    const id = selected;
+    const [symbol, timeframe] = id.split("|");
+    if (!symbol || !timeframe) return;
+    const response = await getJson("candles.php?symbol=" + encodeURIComponent(symbol) +
+      "&timeframe=" + encodeURIComponent(timeframe) + "&limit=5000");
+    if (id !== selected) return;
+    rawBars = (response.bars || []).map(bar => ({
+      t:Number(bar.t) * 1000, o:Number(bar.o), h:Number(bar.h),
+      l:Number(bar.l), c:Number(bar.c), v:Number(bar.v)
+    })).filter(bar => Number.isFinite(bar.t) && Number.isFinite(bar.o) &&
+      Number.isFinite(bar.h) && Number.isFinite(bar.l) && Number.isFinite(bar.c))
+      .sort((a,b) => a.t - b.t);
+    const activeTF = $("view-timeframe").value;
+    const allowed = Object.keys(PERIODS).filter(tf => PERIODS[tf] >= PERIODS[timeframe]);
+    const selector = $("view-timeframe");
+    selector.replaceChildren();
+    for (const tf of allowed) {
+      const option = document.createElement("option");
+      option.value = tf; option.textContent = tf;
+      selector.append(option);
+    }
+    selector.value = allowed.includes(activeTF) ? activeTF : timeframe;
+    selector.disabled = false;
+    $("range").disabled = false;
+    $("dataset-heading").textContent = symbol + " · " + timeframe;
+    $("dataset-meta").textContent = "Server přijal data " + stamp(response.updated_at * 1000);
+    $("dataset-source").textContent = "MT5 API";
+    page = 0;
+    rebuild();
+  }
+
+  function setEmpty(title, description) {
+    $("dataset-heading").textContent = title;
+    $("dataset-meta").textContent = description;
+    $("dataset-source").textContent = apiKey ? "ČEKÁ NA MT5" : "OFFLINE";
+    ["stat-count","stat-close","stat-high","stat-low"].forEach(id => $(id).textContent = "—");
+    $("stat-date").textContent = "Bez dat";
+    $("stat-timeframe").textContent = "Bez dat";
+    $("view-timeframe").disabled = true;
+    $("range").disabled = true;
+    $("chart-empty").hidden = false;
+    $("table-meta").textContent = "Bez dat";
+    rawBars = []; aggregated = []; chartBars = [];
+    renderTable(); drawChart();
+  }
+
+  function bucket(t, tf) {
     if (tf === "W1") {
-      const mondayAnchor = 4 * DAY;
-      const week = 7 * DAY;
-      return Math.floor((time - mondayAnchor) / week) * week + mondayAnchor;
+      const week = DAY * 7, monday = DAY * 4;
+      return Math.floor((t - monday) / week) * week + monday;
     }
-    return Math.floor(time / (minutes * 60000)) * minutes * 60000;
+    const duration = PERIODS[tf] * 60000;
+    return Math.floor(t / duration) * duration;
   }
-
   function aggregate(bars, tf) {
-    let prevBucket = -1;
     const out = [];
-    for (const bar of bars) {
-      const bucket = periodBucket(bar.t, tf);
-      if (bucket !== prevBucket) {
-        out.push({ t: bucket, o: bar.o, h: bar.h, l: bar.l, c: bar.c, v: bar.v });
-        prevBucket = bucket;
+    let lastBucket = -1;
+    for (const b of bars) {
+      const time = bucket(b.t, tf);
+      if (time !== lastBucket) {
+        out.push({t:time,o:b.o,h:b.h,l:b.l,c:b.c,v:b.v});
+        lastBucket = time;
       } else {
         const last = out[out.length - 1];
-        last.h = Math.max(last.h, bar.h);
-        last.l = Math.min(last.l, bar.l);
-        last.c = bar.c;
-        last.v += bar.v;
+        last.h = Math.max(last.h,b.h); last.l = Math.min(last.l,b.l);
+        last.c = b.c; last.v += b.v;
       }
     }
     return out;
   }
 
-  function setActive() {
-    const data = datasets.find(d => d.id === selectedId);
-    page = 0;
-    const tfSelect = $("view-timeframe");
-    tfSelect.replaceChildren();
-    const opts = Object.entries(PERIODS).filter(([, v]) => data && v >= PERIODS[data.timeframe]);
-    for (const [tf] of opts) {
-      const option = document.createElement("option");
-      option.value = tf;
-      option.textContent = tf;
-      tfSelect.append(option);
-    }
-    tfSelect.disabled = !data;
-    $("range").disabled = !data;
-    $("export-button").disabled = !data;
-    $("delete-button").disabled = !data;
-    renderActive();
-  }
-
-  function renderActive() {
-    const data = datasets.find(d => d.id === selectedId);
-    if (!data) {
-      $("dataset-heading").textContent = "Zatím žádná data";
-      $("dataset-meta").textContent = "Nahraj CSV z MT5 nebo zkus ukázkový dataset.";
-      $("dataset-source").textContent = "NEPŘIPOJENO";
-      for (const id of ["stat-count", "stat-close", "stat-high", "stat-low"]) $(id).textContent = "—";
-      $("stat-timeframe").textContent = "Bez dat";
-      $("stat-date").textContent = "Bez dat";
-      $("chart-empty").hidden = false;
-      $("chart-caption").textContent = "Časy se zobrazují v UTC bez převodu časového pásma.";
-      $("table-meta").textContent = "Čeká na import";
-      $("hover-details").textContent = "Po najetí myší na svíčku zde uvidíš OHLCV.";
-      displayed = [];
-      chartBars = [];
-      renderTable();
-      drawChart();
-      return;
-    }
-    const last = data.bars[data.bars.length - 1];
-    $("dataset-heading").textContent = data.symbol + " · " + data.timeframe;
-    $("dataset-meta").textContent = "Od " + fmtTime(data.bars[0].t) + " do " + fmtTime(last.t);
-    $("dataset-source").textContent = data.source === "DEMO" ? "UMĚLÁ DATA" : "IMPORT CSV";
-    $("stat-count").textContent = numberFmt.format(data.bars.length);
-    $("stat-timeframe").textContent = "Původní interval " + data.timeframe;
-    $("stat-close").textContent = fmtPrice(last.c);
-    $("stat-date").textContent = fmtTime(last.t);
-    // For the minimum, calculate in a loop to avoid limits on spread arguments.
-    let min = Infinity, max = -Infinity;
-    for (const bar of data.bars) { if (bar.l < min) min = bar.l; if (bar.h > max) max = bar.h; }
-    $("stat-high").textContent = fmtPrice(max);
-    $("stat-low").textContent = fmtPrice(min);
-    const viewTF = $("view-timeframe").value || data.timeframe;
-    displayed = viewTF === data.timeframe ? data.bars : aggregate(data.bars, viewTF);
-    $("chart-caption").textContent = numberFmt.format(displayed.length) + " svíček v intervalu " + viewTF + " · Čas UTC";
+  function rebuild() {
+    if (!rawBars.length) return setEmpty("Bez dat", "Na serveru zatím nejsou žádné svíčky.");
+    const timeframe = $("view-timeframe").value;
+    const [symbol, sourceTf] = selected.split("|");
+    aggregated = timeframe === sourceTf ? rawBars : aggregate(rawBars,timeframe);
+    chartBars = aggregated.slice(-Number($("range").value));
+    $("stat-count").textContent = num(rawBars.length);
+    $("stat-timeframe").textContent = "Původní interval: " + sourceTf;
+    const last = rawBars[rawBars.length - 1];
+    $("stat-close").textContent = money(last.c);
+    $("stat-date").textContent = stamp(last.t);
+    let high=-Infinity,low=Infinity;
+    for (const b of rawBars) { high=Math.max(high,b.h); low=Math.min(low,b.l); }
+    $("stat-high").textContent = money(high);
+    $("stat-low").textContent = money(low);
+    $("chart-empty").hidden = false;
+    $("chart-caption").textContent = num(aggregated.length) + " svíček · " + timeframe + " · čas MT5 (UTC formát)";
+    $("table-meta").textContent = "Nejnovější první · " + timeframe;
     $("chart-empty").hidden = true;
-    $("table-meta").textContent = "Zobrazený interval: " + viewTF + " · Nejnovější první";
-    chartBars = displayed.slice(-Number($("range").value));
-    renderTable();
-    drawChart();
-  }
-
-  function drawChart() {
-    const canvas = $("chart");
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    const width = Math.max(300, canvas.clientWidth || 680);
-    const height = canvas.clientHeight || 328;
-    const dpr = Math.min(2.5, window.devicePixelRatio || 1);
-    canvas.width = Math.round(width * dpr);
-    canvas.height = Math.round(height * dpr);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, width, height);
-    if (!chartBars.length) return;
-    const left = 10, right = 78, top = 18;
-    const bottom = height - 63, plotWidth = width - left - right;
-    const plotHeight = bottom - top;
-    let low = Infinity, high = -Infinity, maxVolume = 1;
-    for (const bar of chartBars) {
-      low = Math.min(low, bar.l);
-      high = Math.max(high, bar.h);
-      maxVolume = Math.max(maxVolume, bar.v);
-    }
-    const padding = Math.max((high - low) * .08, Math.abs(high) * .0001, .000001);
-    low -= padding; high += padding;
-    const y = price => top + ((high - price) / (high - low)) * plotHeight;
-    ctx.font = "10px ui-monospace, Consolas, monospace";
-    ctx.textBaseline = "middle";
-    for (let i = 0; i < 5; i++) {
-      const yy = top + (plotHeight * i / 4);
-      ctx.strokeStyle = "rgba(86,120,142,.22)";
-      ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(left, yy); ctx.lineTo(left + plotWidth, yy); ctx.stroke();
-      ctx.fillStyle = "#8aa9b7";
-      ctx.fillText(fmtPrice(high - (high - low) * i / 4), width - right + 10, yy);
-    }
-    const step = plotWidth / chartBars.length;
-    const candleWidth = Math.max(1, Math.min(10, step * .65));
-    chartBars.forEach((bar, index) => {
-      const cx = left + index * step + step / 2;
-      const rising = bar.c >= bar.o;
-      const color = rising ? "#48e5bb" : "#f18e8e";
-      const bodyTop = y(Math.max(bar.o, bar.c));
-      const bodyBottom = y(Math.min(bar.o, bar.c));
-      ctx.strokeStyle = color;
-      ctx.fillStyle = color;
-      ctx.lineWidth = Math.max(1, step >= 4 ? 1.4 : 1);
-      ctx.beginPath(); ctx.moveTo(cx, y(bar.h)); ctx.lineTo(cx, y(bar.l)); ctx.stroke();
-      ctx.fillRect(cx - candleWidth / 2, bodyTop, candleWidth, Math.max(1, bodyBottom - bodyTop));
-      if (bar.v > 0) {
-        ctx.globalAlpha = .4;
-        const volumeH = bar.v / maxVolume * 33;
-        ctx.fillRect(cx - candleWidth / 2, height - 43 - volumeH, candleWidth, volumeH);
-        ctx.globalAlpha = 1;
-      }
-    });
-    const ticks = Math.min(6, chartBars.length);
-    ctx.fillStyle = "#7996a8";
-    ctx.font = "10px ui-monospace, monospace";
-    for (let i = 0; i < ticks; i++) {
-      const index = ticks <= 1 ? 0 : Math.floor(i * (chartBars.length - 1) / (ticks - 1));
-      const bar = chartBars[index];
-      const label = new Date(bar.t).toISOString().slice(5, 10);
-      const xx = left + index * step;
-      ctx.fillText(label, Math.max(1, Math.min(width - 109, xx)), height - 9);
-    }
+    renderTable(); drawChart();
   }
 
   function renderTable() {
-    const root = $("data-rows");
-    root.replaceChildren();
-    if (!displayed.length) {
-      const tr = document.createElement("tr");
-      const td = document.createElement("td");
-      td.className = "table-empty";
-      td.colSpan = 6;
-      td.textContent = "Zatím žádné svíčky.";
-      tr.append(td); root.append(tr);
-      $("page-text").textContent = "—";
-      $("prev-page").disabled = true;
-      $("next-page").disabled = true;
+    const body = $("data-rows");
+    body.replaceChildren();
+    if (!aggregated.length) {
+      const tr=document.createElement("tr"), td=document.createElement("td");
+      td.colSpan=6;td.className="table-empty";td.textContent="Zatím žádné svíčky.";
+      tr.append(td);body.append(tr);
+      $("page-text").textContent="—";
+      $("prev-page").disabled=$("next-page").disabled=true;
       return;
     }
-    const reversed = displayed.slice().reverse();
-    const first = page * TABLE_SIZE;
-    for (const bar of reversed.slice(first, first + TABLE_SIZE)) {
-      const tr = document.createElement("tr");
-      const values = [fmtTime(bar.t), fmtPrice(bar.o), fmtPrice(bar.h), fmtPrice(bar.l), fmtPrice(bar.c), numberFmt.format(bar.v)];
-      values.forEach((val, i) => {
-        const td = document.createElement("td");
-        td.textContent = val;
-        if (i === 4) td.className = bar.c >= bar.o ? "positive" : "negative";
+    const len=aggregated.length;
+    const start=len-1-page*PAGE_SIZE;
+    const end=Math.max(-1,start-PAGE_SIZE);
+    for(let i=start;i>end;i--){
+      const b=aggregated[i], tr=document.createElement("tr");
+      const values=[stamp(b.t),money(b.o),money(b.h),money(b.l),money(b.c),num(b.v)];
+      values.forEach((v,k)=>{
+        const td=document.createElement("td");td.textContent=v;
+        if(k===4)td.className=b.c>=b.o?"positive":"negative";
         tr.append(td);
       });
-      root.append(tr);
+      body.append(tr);
     }
-    const totalPages = Math.ceil(displayed.length / TABLE_SIZE);
-    $("page-text").textContent = (page + 1) + " / " + totalPages + " · " + numberFmt.format(displayed.length) + " svíček";
-    $("prev-page").disabled = page === 0;
-    $("next-page").disabled = page >= totalPages - 1;
+    $("page-text").textContent=(page+1)+" / "+Math.ceil(len/PAGE_SIZE)+" · "+num(len)+" svíček";
+    $("prev-page").disabled=page<=0;
+    $("next-page").disabled=(page+1)*PAGE_SIZE>=len;
   }
 
-  function splitDelimitedLine(line, separator) {
-    const fields = [];
-    let field = "", quoted = false;
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-      if (char === '"') {
-        if (quoted && line[i + 1] === '"') { field += '"'; i++; }
-        else quoted = !quoted;
-      } else if (char === separator && !quoted) { fields.push(field.trim()); field = ""; }
-      else field += char;
+  function drawChart() {
+    const canvas=$("chart"),ctx=canvas.getContext("2d");
+    if(!ctx)return;
+    const width=Math.max(300,canvas.clientWidth||680),height=canvas.clientHeight||328;
+    const dpr=Math.min(2.5,window.devicePixelRatio||1);
+    canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,width,height);
+    if(!chartBars.length)return;
+    const left=10,right=78,top=17,bottom=height-63;
+    const pw=width-left-right,ph=bottom-top;
+    let high=-Infinity,low=Infinity,maxVol=1;
+    for(const b of chartBars){high=Math.max(high,b.h);low=Math.min(low,b.l);maxVol=Math.max(maxVol,b.v);}
+    const extra=Math.max((high-low)*.08,Math.abs(high)*.0001,.000001);
+    high+=extra;low-=extra;
+    const y=price=>top+(high-price)/(high-low)*ph;
+    ctx.font="10px ui-monospace,Consolas,monospace";ctx.textBaseline="middle";
+    for(let i=0;i<5;i++){
+      const yy=top+ph*i/4;
+      ctx.strokeStyle="rgba(86,120,142,.22)";ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(left,yy);ctx.lineTo(left+pw,yy);ctx.stroke();
+      ctx.fillStyle="#8aa9b7";ctx.fillText(money(high-(high-low)*i/4),width-right+10,yy);
     }
-    fields.push(field.trim());
-    return fields;
-  }
-
-  function parseUTCDate(dateText, timeText = "") {
-    const date = String(dateText || "").trim();
-    const time = String(timeText || "").trim();
-    if (/^\d{10,13}$/.test(date) && !time) {
-      const n = Number(date);
-      return date.length === 13 ? n : n * 1000;
+    const step=pw/chartBars.length,cw=Math.max(1,Math.min(10,step*.65));
+    chartBars.forEach((b,i)=>{
+      const cx=left+i*step+step/2;
+      const color=b.c>=b.o?"#48e5bb":"#f18e8e";
+      ctx.strokeStyle=ctx.fillStyle=color;ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(cx,y(b.h));ctx.lineTo(cx,y(b.l));ctx.stroke();
+      const a=y(Math.max(b.o,b.c)),z=y(Math.min(b.o,b.c));
+      ctx.fillRect(cx-cw/2,a,cw,Math.max(1,z-a));
+      if(b.v>0){ctx.globalAlpha=.4;ctx.fillRect(cx-cw/2,height-43-(b.v/maxVol)*31,cw,(b.v/maxVol)*31);ctx.globalAlpha=1;}
+    });
+    ctx.fillStyle="#7996a8";
+    const ticks=Math.min(6,chartBars.length);
+    for(let i=0;i<ticks;i++){
+      const index=ticks===1?0:Math.floor(i*(chartBars.length-1)/(ticks-1));
+      const x=left+index*step;
+      ctx.fillText(new Date(chartBars[index].t).toISOString().slice(5,10),Math.max(1,Math.min(width-105,x)),height-9);
     }
-    const combined = (date + " " + time).trim().replace("T", " ");
-    const match = combined.match(/^(\d{4})[.\/-](\d{1,2})[.\/-](\d{1,2})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?(?:\s*Z)?$/);
-    const european = !match && combined.match(/^(\d{1,2})[.\/](\d{1,2})[.\/](\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/);
-    const v = match ? [match[1], match[2], match[3], match[4], match[5], match[6]] : european ? [european[3], european[2], european[1], european[4], european[5], european[6]] : null;
-    if (!v) return NaN;
-    const [year, month, day, hour, minute, second] = v.map(x => Number(x || 0));
-    const result = Date.UTC(year, month - 1, day, hour, minute, second);
-    const parsed = new Date(result);
-    if (parsed.getUTCFullYear() !== year || parsed.getUTCMonth() + 1 !== month || parsed.getUTCDate() !== day || parsed.getUTCHours() !== hour || parsed.getUTCMinutes() !== minute) return NaN;
-    return result;
-  }
-
-  function parseNumber(value) {
-    const cleaned = String(value ?? "").trim().replace(/\s/g, "").replace(",", ".");
-    if (!cleaned) return NaN;
-    const n = Number(cleaned);
-    return Number.isFinite(n) ? n : NaN;
-  }
-
-  function parseCsv(text) {
-    const raw = text.replace(/^\uFEFF/, "").split(/\r\n|\r|\n/).filter(s => s.trim());
-    if (raw.length < 2) throw new Error("Soubor neobsahuje hlavičku a datové řádky.");
-    const headerLine = raw[0];
-    const separator = ["\t", ";", ","].sort((a, b) => headerLine.split(b).length - headerLine.split(a).length)[0];
-    const normalize = x => x.trim().replace(/^[<"']+|[>"']+$/g, "").replace(/[\s_-]/g, "").toLowerCase();
-    const headers = splitDelimitedLine(headerLine, separator).map(normalize);
-    const locate = (...names) => headers.findIndex(x => names.includes(x));
-    const col = {
-      date: locate("date", "datum"),
-      time: locate("time"),
-      dateTime: locate("datetime", "timestamp", "dateandtime"),
-      open: locate("open", "o"),
-      high: locate("high", "h"),
-      low: locate("low", "l"),
-      close: locate("close", "c"),
-      volume: locate("tickvol", "tickvolume", "tickvolumes", "volume", "vol", "realvolume")
-    };
-    if ([col.open, col.high, col.low, col.close].some(x => x < 0) || (col.date < 0 && col.dateTime < 0 && col.time < 0)) {
-      throw new Error("Chybí hlavička DATE/TIME (nebo DATETIME) a OPEN, HIGH, LOW, CLOSE.");
-    }
-    if (raw.length - 1 > MAX_BARS) throw new Error("Soubor obsahuje více než 100 000 řádků. Rozděl ho na menší části.");
-    const map = new Map();
-    let skipped = 0;
-    for (let i = 1; i < raw.length; i++) {
-      const cells = splitDelimitedLine(raw[i], separator);
-      const timestamp = col.dateTime >= 0 ? parseUTCDate(cells[col.dateTime]) :
-        col.date >= 0 ? parseUTCDate(cells[col.date], col.time >= 0 ? cells[col.time] : "") : parseUTCDate(cells[col.time]);
-      const o = parseNumber(cells[col.open]), h = parseNumber(cells[col.high]);
-      const l = parseNumber(cells[col.low]), c = parseNumber(cells[col.close]);
-      const volumeValue = col.volume >= 0 ? parseNumber(cells[col.volume]) : 0;
-      const v = Number.isFinite(volumeValue) && volumeValue >= 0 ? volumeValue : 0;
-      if (!Number.isFinite(timestamp) || ![o, h, l, c].every(Number.isFinite) || h < Math.max(o, c, l) || l > Math.min(o, c, h)) { skipped++; continue; }
-      map.set(timestamp, { t: timestamp, o, h, l, c, v });
-    }
-    const bars = [...map.values()].sort((a, b) => a.t - b.t);
-    if (!bars.length) throw new Error("Nenašli jsme žádné platné OHLC svíčky. Zkontroluj formát souboru.");
-    return { bars, skipped };
-  }
-
-  function selectFile(file) {
-    if (!file) return;
-    if (file.size > MAX_FILE_BYTES) {
-      fileToImport = null;
-      $("file-name").textContent = "Soubor je větší než 20 MB.";
-      $("import-button").disabled = true;
-      message("Soubor je příliš velký (maximum je 20 MB).", true);
-      return;
-    }
-    fileToImport = file;
-    $("file-name").textContent = file.name;
-    $("import-button").disabled = false;
-  }
-
-  function canonicalSymbol(value) {
-    const symbol = value.trim().toUpperCase();
-    if (!/^[A-Z0-9._:-]{1,30}$/.test(symbol)) throw new Error("Symbol může obsahovat jen písmena, čísla a znaky . _ : -.");
-    return symbol;
-  }
-
-  async function importFile() {
-    if (!fileToImport) return;
-    let symbol;
-    try { symbol = canonicalSymbol($("symbol").value); }
-    catch (error) { message(error.message, true); return; }
-    const tf = $("source-timeframe").value;
-    const button = $("import-button");
-    button.disabled = true;
-    button.textContent = "Importuji…";
-    try {
-      const { bars, skipped } = parseCsv(await fileToImport.text());
-      const id = symbol + "|" + tf;
-      const old = datasets.find(d => d.id === id);
-      const merged = new Map((old?.bars || []).map(bar => [bar.t, bar]));
-      for (const bar of bars) merged.set(bar.t, bar);
-      const combined = [...merged.values()].sort((a, b) => a.t - b.t);
-      if (combined.length > MAX_BARS) throw new Error("Dataset přesahuje 100 000 svíček. Použij kratší období.");
-      const record = {
-        id, symbol, timeframe: tf, bars: combined, source: "CSV",
-        updatedAt: Date.now(), createdAt: old?.createdAt || Date.now()
-      };
-      await transaction("put", record);
-      await refreshDatasets(id);
-      message("Importováno: " + numberFmt.format(bars.length) + " svíček" + (skipped ? " · přeskočeno " + skipped : "") + ".");
-    } catch (error) {
-      console.error("StockTool import error:", error);
-      message("Import selhal: " + (error.message || "Neznámá chyba."), true);
-    } finally {
-      button.disabled = !fileToImport;
-      button.replaceChildren(document.createTextNode("Importovat svíčky "), Object.assign(document.createElement("span"), { textContent: "↗" }));
-    }
-  }
-
-  async function demoData() {
-    const end = Math.floor(Date.now() / 3600000) * 3600000;
-    const bars = [];
-    let price = 115;
-    for (let i = 239; i >= 0; i--) {
-      const sequence = 239 - i;
-      const change = Math.sin(sequence * .31) * 1.0 + Math.cos(sequence * .12) * .9 + Math.sin(sequence * 1.7) * .4;
-      const open = price;
-      const close = Math.max(.5, open + change);
-      const high = Math.max(open, close) + .3 + Math.abs(Math.sin(sequence)) * .7;
-      const low = Math.min(open, close) - .3 - Math.abs(Math.cos(sequence)) * .7;
-      bars.push({ t: end - i * 3600000, o: open, h: high, l: low, c: close, v: 50 + (sequence * 73) % 140 });
-      price = close;
-    }
-    const id = "DEMO|H1";
-    try {
-      await transaction("put", { id, symbol: "DEMO", timeframe: "H1", bars, source: "DEMO", updatedAt: Date.now(), createdAt: Date.now() });
-      await refreshDatasets(id);
-      message("Načtena umělá ukázková data (nejde o skutečné tržní ceny).");
-    } catch (error) { message("Ukázková data se nepodařilo uložit: " + error.message, true); }
-  }
-
-  function exportCsv() {
-    const data = datasets.find(d => d.id === selectedId);
-    if (!data) return;
-    const rows = ["<DATE>,<TIME>,<OPEN>,<HIGH>,<LOW>,<CLOSE>,<TICKVOL>"];
-    for (const bar of data.bars) {
-      const iso = new Date(bar.t).toISOString();
-      rows.push([iso.slice(0, 10).replaceAll("-", "."), iso.slice(11, 19), bar.o, bar.h, bar.l, bar.c, bar.v].join(","));
-    }
-    const blob = new Blob([rows.join("\r\n") + "\r\n"], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "stocktool_" + data.symbol.replace(/[^A-Z0-9._-]/gi, "_") + "_" + data.timeframe + ".csv";
-    document.body.append(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 3000);
-    message("Exportováno " + numberFmt.format(data.bars.length) + " původních svíček do CSV.");
-  }
-
-  async function deleteSelected() {
-    const data = datasets.find(d => d.id === selectedId);
-    if (!data) return;
-    if (!window.confirm("Smazat dataset " + data.symbol + " (" + data.timeframe + ") z tohoto prohlížeče?")) return;
-    try {
-      await transaction("delete", data.id);
-      selectedId = "";
-      await refreshDatasets("");
-      message("Dataset byl odstraněn.");
-    } catch (error) { message("Smazání se nezdařilo: " + error.message, true); }
   }
 
   async function initialize() {
-    $("year").textContent = String(new Date().getFullYear());
-    try { db = await openDatabase(); }
-    catch (error) {
-      memoryOnly = true;
-      const label = document.querySelector(".local-notice small");
-      label.textContent = "Dočasná paměť – po zavření zmizí";
-      message("Prohlížeč nepovolil místní databázi. Data vydrží jen do obnovení stránky.", true);
-    }
-    try { await refreshDatasets(); } catch (error) { message("Načtení databáze selhalo: " + error.message, true); }
-
-    $("dropzone").addEventListener("click", () => $("file-input").click());
-    $("dropzone").addEventListener("keydown", e => {
-      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("file-input").click(); }
+    $("year").textContent=String(new Date().getFullYear());
+    $("connect-button").addEventListener("click",connect);
+    $("access-key").addEventListener("keydown",event=>{if(event.key==="Enter")connect();});
+    $("show-key").addEventListener("change",e=>{
+      $("access-key").type=e.target.checked?"text":"password";
     });
-    $("file-input").addEventListener("change", e => selectFile(e.target.files[0]));
-    for (const type of ["dragenter", "dragover"]) {
-      $("dropzone").addEventListener(type, e => { e.preventDefault(); $("dropzone").classList.add("dragover"); });
-    }
-    for (const type of ["dragleave", "drop"]) {
-      $("dropzone").addEventListener(type, e => { e.preventDefault(); $("dropzone").classList.remove("dragover"); });
-    }
-    $("dropzone").addEventListener("drop", e => selectFile(e.dataTransfer.files[0]));
-    $("import-button").addEventListener("click", importFile);
-    $("demo-button").addEventListener("click", demoData);
-    $("view-timeframe").addEventListener("change", () => { page = 0; renderActive(); });
-    $("range").addEventListener("change", drawForNewRange);
-    $("export-button").addEventListener("click", exportCsv);
-    $("delete-button").addEventListener("click", deleteSelected);
-    $("prev-page").addEventListener("click", () => { page = Math.max(0, page - 1); renderTable(); });
-    $("next-page").addEventListener("click", () => { page++; renderTable(); });
-
-    $("chart").addEventListener("mousemove", e => {
-      if (!chartBars.length) return;
-      const bounds = $("chart").getBoundingClientRect();
-      const x = e.clientX - bounds.left;
-      const step = (bounds.width - 88) / chartBars.length;
-      const index = Math.floor((x - 10) / step);
-      if (index < 0 || index >= chartBars.length) return;
-      const bar = chartBars[index];
-      $("hover-details").textContent = fmtTime(bar.t) + " · O " + fmtPrice(bar.o) + " · H " + fmtPrice(bar.h) + " · L " + fmtPrice(bar.l) + " · C " + fmtPrice(bar.c) + " · V " + numberFmt.format(bar.v);
+    $("disconnect-button").addEventListener("click",disconnect);
+    $("refresh-button").addEventListener("click",()=>refreshAll());
+    $("view-timeframe").addEventListener("change",()=>{page=0;rebuild();});
+    $("range").addEventListener("change",()=>{chartBars=aggregated.slice(-Number($("range").value));drawChart();});
+    $("prev-page").addEventListener("click",()=>{page=Math.max(0,page-1);renderTable();});
+    $("next-page").addEventListener("click",()=>{if((page+1)*PAGE_SIZE<aggregated.length)page++;renderTable();});
+    $("chart").addEventListener("mousemove",event=>{
+      if(!chartBars.length)return;
+      const r=$("chart").getBoundingClientRect();
+      const step=(r.width-88)/chartBars.length;
+      const i=Math.floor(((event.clientX-r.left)-10)/step);
+      if(i<0||i>=chartBars.length)return;
+      const b=chartBars[i];
+      $("hover-details").textContent=stamp(b.t)+" · O "+money(b.o)+" · H "+money(b.h)+" · L "+money(b.l)+" · C "+money(b.c)+" · V "+num(b.v);
     });
-    $("chart").addEventListener("mouseleave", () => {
-      $("hover-details").textContent = "Po najetí myší na svíčku zde uvidíš OHLCV.";
+    $("chart").addEventListener("mouseleave",()=>{
+      $("hover-details").textContent="Po najetí myší na svíčku zde uvidíš OHLCV.";
     });
-    if ("ResizeObserver" in window) new ResizeObserver(drawChart).observe($("chart-wrapper"));
-    else window.addEventListener("resize", drawChart);
+    if("ResizeObserver" in window)new ResizeObserver(drawChart).observe($("chart-wrapper"));
+    else window.addEventListener("resize",drawChart);
+    window.setInterval(()=>{if(apiKey&&!document.hidden)refreshAll();},30000);
+    try {
+      const state=await getJson("status.php",false);
+      $("api-status").textContent=state.configured
+        ? "API běží. Zadej přístupový klíč."
+        : "API běží, ale čeká na soukromý config.php na FORPSI.";
+    } catch(error) {
+      $("api-status").textContent=error.message;
+    }
+    setEmpty("Čeká na připojení","Zadej přístupový klíč.");
   }
-
-  function drawForNewRange() {
-    chartBars = displayed.slice(-Number($("range").value));
-    drawChart();
-  }
-  document.addEventListener("DOMContentLoaded", initialize);
+  document.addEventListener("DOMContentLoaded",initialize);
 })();
