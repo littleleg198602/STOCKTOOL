@@ -49,6 +49,13 @@
         <div class="panel-split"><span>nebo vyzkoušet aplikaci</span></div>
         <button id="demo-button" class="btn btn-outline btn-block" type="button">Načíst ukázková data <span>↗</span></button>
         <p class="micro-copy">Ukázková data jsou uměle vytvořená. Nejde o skutečné tržní ceny.</p>
+        <details class="export-help">
+          <summary>Jak získat CSV z MetaTraderu 5?</summary>
+          <p>Na PC s přihlášeným MT5 stáhni náš <a href="https://github.com/littleleg198602/STOCKTOOL/blob/main/scripts/export_mt5_csv.py" target="_blank" rel="noopener noreferrer">Python exportér</a> a spusť:</p>
+          <code>py -m pip install MetaTrader5</code>
+          <code>py export_mt5_csv.py --symbol XAUUSD --timeframe H1 --count 5000</code>
+          <p>Vzniklé CSV zde vyber a importuj. Použij přesný název symbolu a interval jako v MT5. Exportují se pouze dokončené svíčky.</p>
+        </details>
       </section>
 
       <section class="panel datasets-panel" aria-labelledby="sets-title">
