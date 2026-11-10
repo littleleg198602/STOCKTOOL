@@ -17,3 +17,10 @@ button,input,select{font:inherit}button{cursor:pointer}button:disabled{opacity:.
 @media(max-width:900px){.page-heading{align-items:flex-start}.local-notice{margin-top:10px}.app-layout{grid-template-columns:1fr}.sidebar{grid-template-columns:1fr 1fr;align-items:start}.chart-wrapper{height:300px}}
 @media(max-width:650px){.container{width:calc(100% - 30px)}.topbar-inner{height:68px}.topbar-title,.version-tag{display:none}.back-link{font-size:11px}.brand{font-size:16px}.brand-icon{width:33px;height:33px}.page-heading{padding:32px 0 25px;display:block}.page-heading h1{font-size:43px}.local-notice{margin-top:24px;width:max-content;max-width:100%}.sidebar{grid-template-columns:1fr}.app-layout{gap:15px}.viewer-panel{padding:14px}.viewer-head h2{font-size:23px}.stat-grid{grid-template-columns:1fr 1fr;gap:8px}.stat{padding:12px}.stat strong{font-size:19px}.chart-panel{padding:11px}.chart-title-row{align-items:flex-start;flex-direction:column}.chart-controls{width:100%;justify-content:flex-start}.chart-wrapper{height:260px}.chart-bottom{flex-wrap:wrap}.table-toolbar{align-items:flex-start;flex-direction:column}.toolbar-actions{width:100%}.toolbar-actions .btn{flex:1;justify-content:center}.footer{flex-direction:column;gap:5px}.source-tag{font-size:8px}.chart-empty strong{font-size:12px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+/* Expandable MT5 export quick guide */
+.export-help{margin-top:18px;padding:11px 12px;border:1px solid #305062;border-radius:9px;background:#102236}
+.export-help summary{font-size:12px;cursor:pointer;font-weight:750;color:#c9ebdf;line-height:1.5}
+.export-help[open] summary{margin-bottom:9px}
+.export-help p{font-size:11px;line-height:1.75;color:#90a9bb;margin:8px 0}
+.export-help a{color:#68e9c8;text-decoration:underline;text-underline-offset:3px}
+.export-help code{display:block;font:10px/1.7 ui-monospace,Consolas,monospace;background:#0a1826;border:1px solid #264053;border-radius:6px;padding:8px;margin:6px 0;overflow-wrap:anywhere;user-select:all}
