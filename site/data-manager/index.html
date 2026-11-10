@@ -1,111 +1,85 @@
 <!doctype html>
 <html lang="cs">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0a1220">
-<meta name="description" content="StockTool Data Manager – import a prohlížení historických OHLCV svíček z MT5 v prohlížeči.">
-<title>Data Manager | StockTool</title>
+<meta name="description" content="StockTool Data Manager – přímá synchronizace svíčkových OHLCV dat z MetaTraderu 5.">
+<title>Data Manager – MT5 Live | StockTool</title>
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="./styles.css">
-<script src="./app.js" defer></script>
+<link rel="stylesheet" href="./styles.css"><script src="./app.js" defer></script>
 </head>
 <body>
 <a href="#main" class="skip-link">Přejít na aplikaci</a>
-<header class="topbar">
-  <div class="container topbar-inner">
-    <a class="brand" href="../" aria-label="StockTool – zpět na hlavní stránku">
-      <span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="m5 21 8-8 6 5 8-10M21 8h6v6" stroke="currentColor" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round"/></svg></span>
-      <span>STOCK<span>TOOL</span><small>.EU</small></span>
-    </a>
-    <div class="topbar-right"><span class="topbar-title">/ DATA MANAGER</span><span class="version-tag">BETA V0.1</span><a class="back-link" href="../">← Zpět na platformu</a></div>
-  </div>
-</header>
+<header class="topbar"><div class="container topbar-inner">
+  <a class="brand" href="../" aria-label="StockTool – hlavní stránka">
+    <span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="m5 21 8-8 6 5 8-10M21 8h6v6" stroke="currentColor" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round"/></svg></span>
+    <span>STOCK<span>TOOL</span><small>.EU</small></span>
+  </a>
+  <div class="topbar-right"><span class="topbar-title">/ DATA MANAGER</span><span class="version-tag">MT5 BRIDGE · BETA</span><a class="back-link" href="../">← Platforma</a></div>
+</div></header>
 <main class="container" id="main">
   <div class="page-heading">
-    <div><div class="eyebrow"><span class="status-dot"></span> PRVNÍ FUNKČNÍ MODUL <span class="eyebrow-divider">//</span> IMPORT CSV</div>
+    <div><div class="eyebrow"><span class="status-dot"></span> PŘÍMÉ PROPOJENÍ <span class="eyebrow-divider">//</span> METATRADER 5</div>
       <h1>Data <span>Manager.</span></h1>
-      <p>Načti historické svíčky z MetaTraderu 5. Prohlížej OHLCV, pracuj s časovými intervaly a exportuj data pro další analýzy.</p>
+      <p>Historické OHLCV svíčky z tvého MetaTraderu 5, automaticky synchronizované na StockTool. Žádné CSV, žádný ruční export.</p>
     </div>
-    <div class="local-notice"><span class="notice-icon">⌂</span><span><strong>Lokální režim</strong><small>Data zůstávají v tomto prohlížeči</small></span></div>
+    <div class="local-notice"><span class="notice-icon">↗</span><span><strong>MT5 → StockTool</strong><small id="connection-label">Zatím nepřipojeno</small></span></div>
   </div>
-
   <div class="app-layout">
     <aside class="sidebar">
-      <section class="panel import-panel" aria-labelledby="import-title">
-        <div class="panel-heading"><h2 id="import-title">Import dat</h2><span class="panel-index">01</span></div>
-        <p class="panel-helper">Nahraj soubor CSV nebo TSV s OHLCV svíčkami. Podporujeme běžný export z MT5.</p>
-        <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Vybrat soubor CSV z počítače">
-          <span class="upload-icon">⇧</span><strong>Vybrat soubor</strong><span id="file-name">nebo ho přetáhni sem</span><small>CSV / TSV · max. 20 MB</small>
-        </div>
-        <input id="file-input" type="file" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values" hidden>
-        <div class="field-grid">
-          <label class="field"><span>Symbol</span><input type="text" id="symbol" value="XAUUSD" placeholder="XAUUSD" maxlength="30" spellcheck="false" autocomplete="off"></label>
-          <label class="field"><span>Interval dat</span><select id="source-timeframe">
-            <option value="M1">M1</option><option value="M5">M5</option><option value="M15">M15</option><option value="M30">M30</option><option value="H1" selected>H1</option><option value="H4">H4</option><option value="D1">D1</option><option value="W1">W1</option>
-          </select></label>
-        </div>
-        <button id="import-button" class="btn btn-primary btn-block" type="button" disabled>Importovat svíčky <span>↗</span></button>
-        <div class="panel-split"><span>nebo vyzkoušet aplikaci</span></div>
-        <button id="demo-button" class="btn btn-outline btn-block" type="button">Načíst ukázková data <span>↗</span></button>
-        <p class="micro-copy">Ukázková data jsou uměle vytvořená. Nejde o skutečné tržní ceny.</p>
+      <section class="panel import-panel" aria-labelledby="connection-title">
+        <div class="panel-heading"><h2 id="connection-title">Připojení k datům</h2><span class="panel-index">01</span></div>
+        <p class="panel-helper">Vlož soukromý přístupový klíč vytvořený při nastavení StockTool API. Klíč se neukládá do prohlížeče.</p>
+        <label class="field" for="access-key"><span>StockTool API klíč</span><input type="password" id="access-key" placeholder="Vlož svůj klíč…" autocomplete="off"></label>
+        <label class="show-key"><input type="checkbox" id="show-key"> Zobrazit klíč</label>
+        <button id="connect-button" class="btn btn-primary btn-block" type="button">Připojit <span>↗</span></button>
+        <button id="disconnect-button" class="btn btn-outline btn-block" type="button" disabled>Odpojit</button>
+        <p class="micro-copy" id="api-status">Ověření webového API ještě neproběhlo.</p>
         <details class="export-help">
-          <summary>Jak získat CSV z MetaTraderu 5?</summary>
-          <p>Na PC s přihlášeným MT5 stáhni náš <a href="https://github.com/littleleg198602/STOCKTOOL/blob/main/scripts/export_mt5_csv.py" target="_blank" rel="noopener noreferrer">Python exportér</a> a spusť:</p>
-          <code>py -m pip install MetaTrader5</code>
-          <code>py export_mt5_csv.py --symbol XAUUSD --timeframe H1 --count 5000</code>
-          <p>Vzniklé CSV zde vyber a importuj. Použij přesný název symbolu a interval jako v MT5. Exportují se pouze dokončené svíčky.</p>
+          <summary>Jak propojit MetaTrader 5?</summary>
+          <p>1. Na FORPSI vytvoř neveřejný soubor <code>/stocktool.eu/stocktool-private/config.php</code> s API klíčem (viz návod na GitHubu).</p>
+          <p>2. Otevři <a href="https://github.com/littleleg198602/STOCKTOOL/blob/main/mt5/StockToolBridge.mq5" target="_blank" rel="noopener noreferrer">StockToolBridge.mq5</a>, vlož ho v MT5 do složky <code>MQL5/Experts</code> a zkompiluj v MetaEditoru.</p>
+          <p>3. MT5 → Nástroje → Možnosti → Expertní poradci: povol WebRequest pro <code>https://stocktool.eu</code>.</p>
+          <p>4. Připoj poradce ke grafu, vyber symbol a interval, zadej stejný klíč. Modul pouze čte ceny, neobchoduje.</p>
+          <p>5. Otevři tuto stránku, vlož klíč a klikni na Připojit. MT5 musí běžet, aby přicházely další svíčky.</p>
         </details>
       </section>
-
       <section class="panel datasets-panel" aria-labelledby="sets-title">
-        <div class="panel-heading"><h2 id="sets-title">Uložené datasety</h2><span class="count-pill" id="set-count">0</span></div>
-        <div id="datasets-list" class="datasets-list" aria-live="polite"><div class="empty-small">Zatím žádná data.</div></div>
-        <p class="datasets-note">Uloženo pouze lokálně přes IndexedDB. Smazání dat prohlížeče může odstranit i tyto datasety.</p>
+        <div class="panel-heading"><h2 id="sets-title">Dostupné datasety</h2><span class="count-pill" id="set-count">0</span></div>
+        <div id="datasets-list" class="datasets-list" aria-live="polite"><div class="empty-small">Připoj se k API.</div></div>
+        <p class="datasets-note">Data přicházejí z MT5 do soukromého úložiště na hostingu. Záleží na rozsahu historie dostupné u brokera.</p>
       </section>
     </aside>
-
     <div class="workarea">
       <section class="panel viewer-panel" aria-labelledby="dataset-heading">
-        <div class="viewer-head">
-          <div><div class="eyebrow subdued">AKTIVNÍ DATASET</div><h2 id="dataset-heading">Zatím žádná data</h2><p id="dataset-meta">Nahraj CSV z MT5 nebo zkus ukázkový dataset.</p></div>
-          <span class="source-tag" id="dataset-source">NEPŘIPOJENO</span>
-        </div>
+        <div class="viewer-head"><div><div class="eyebrow subdued">AKTIVNÍ DATASET</div><h2 id="dataset-heading">Čeká na připojení</h2><p id="dataset-meta">Zadej přístupový klíč.</p></div><span class="source-tag" id="dataset-source">OFFLINE</span></div>
         <div class="stat-grid">
           <div class="stat"><span>Počet svíček</span><strong id="stat-count">—</strong><small id="stat-timeframe">Bez dat</small></div>
           <div class="stat"><span>Poslední close</span><strong id="stat-close">—</strong><small id="stat-date">Bez dat</small></div>
-          <div class="stat"><span>Maximum (data)</span><strong id="stat-high">—</strong><small>High</small></div>
-          <div class="stat"><span>Minimum (data)</span><strong id="stat-low">—</strong><small>Low</small></div>
+          <div class="stat"><span>Maximum</span><strong id="stat-high">—</strong><small>High</small></div>
+          <div class="stat"><span>Minimum</span><strong id="stat-low">—</strong><small>Low</small></div>
         </div>
-
         <div class="chart-panel">
-          <div class="chart-title-row">
-            <div><span class="eyebrow subdued">CANDLESTICK VIEW</span><h3>Historie cen</h3></div>
+          <div class="chart-title-row"><div><span class="eyebrow subdued">CANDLESTICK VIEW</span><h3>Historie cen</h3></div>
             <div class="chart-controls">
-              <label>Interval <select id="view-timeframe" disabled><option value="H1">H1</option></select></label>
-              <label>Zobrazení <select id="range" disabled><option value="60">60</option><option value="120" selected>120</option><option value="240">240</option></select></label>
+              <label>Interval <select id="view-timeframe" disabled><option>—</option></select></label>
+              <label>Zobrazit <select id="range" disabled><option value="60">60</option><option value="120" selected>120</option><option value="240">240</option></select></label>
+              <button id="refresh-button" class="btn btn-outline" type="button" disabled>↻ Obnovit</button>
             </div>
           </div>
-          <div class="chart-wrapper" id="chart-wrapper">
-            <canvas id="chart" height="328" aria-label="Svíčkový graf aktuálního datasetu" role="img"></canvas>
-            <div class="chart-empty" id="chart-empty"><span>▥</span><strong>Pro graf zatím nejsou data</strong><small>Importuj soubor CSV nebo nahraj ukázku.</small></div>
-          </div>
-          <div class="chart-bottom"><span id="chart-caption">Časy se zobrazují v UTC bez převodu časového pásma.</span><span class="legend"><i class="up"></i> Růstová <i class="down"></i> Poklesová</span></div>
-          <div class="hover-details" id="hover-details" aria-live="off">Po najetí myší na svíčku zde uvidíš OHLCV.</div>
+          <div class="chart-wrapper" id="chart-wrapper"><canvas id="chart" height="328" role="img" aria-label="Svíčkový graf aktuálního datasetu"></canvas>
+          <div class="chart-empty" id="chart-empty"><span>▥</span><strong>Žádná data z MT5</strong><small>Připoj API a spusť StockToolBridge v MT5.</small></div></div>
+          <div class="chart-bottom"><span id="chart-caption">Čas v UTC, podle odeslaných časových značek MT5.</span><span class="legend"><i class="up"></i> Růstová <i class="down"></i> Poklesová</span></div>
+          <div class="hover-details" id="hover-details">Po najetí myší na svíčku zde uvidíš OHLCV.</div>
         </div>
-
-        <div class="table-toolbar">
-          <div><div class="eyebrow subdued">DATA TABLE</div><h3>Poslední svíčky</h3><span class="table-meta" id="table-meta">Čeká na import</span></div>
-          <div class="toolbar-actions"><button id="export-button" class="btn btn-outline" type="button" disabled>↓ Export CSV</button><button id="delete-button" class="btn btn-danger" type="button" disabled>Smazat dataset</button></div>
-        </div>
-        <div class="table-scroll"><table><thead><tr><th>Čas (UTC)</th><th>Open</th><th>High</th><th>Low</th><th>Close</th><th>Tick volume</th></tr></thead><tbody id="data-rows"><tr><td class="table-empty" colspan="6">Zatím žádné svíčky.</td></tr></tbody></table></div>
-        <div class="pagination"><span id="page-text">—</span><div><button class="page-btn" id="prev-page" type="button" disabled aria-label="Novější svíčky">←</button><button class="page-btn" id="next-page" type="button" disabled aria-label="Starší svíčky">→</button></div></div>
+        <div class="table-toolbar"><div><div class="eyebrow subdued">DATA TABLE</div><h3>Poslední svíčky</h3><span class="table-meta" id="table-meta">Čeká na data</span></div></div>
+        <div class="table-scroll"><table><thead><tr><th>Čas (MT5, UTC)</th><th>Open</th><th>High</th><th>Low</th><th>Close</th><th>Tick volume</th></tr></thead><tbody id="data-rows"><tr><td colspan="6" class="table-empty">Zatím žádné svíčky.</td></tr></tbody></table></div>
+        <div class="pagination"><span id="page-text">—</span><div><button class="page-btn" id="prev-page" type="button" disabled>←</button><button class="page-btn" id="next-page" type="button" disabled>→</button></div></div>
       </section>
-      <div class="about-panel"><span class="about-icon">i</span><div><strong>Co tato verze umí a neumí</strong><p>Importuje soubory CSV/TSV, ukládá data v prohlížeči, agreguje svíčky na delší intervaly a umožňuje export. Zatím není přímo napojená na běžící MT5 ani serverovou databázi. Reálné objemy obchodů nejsou totéž co tick volume z brokera.</p></div></div>
+      <div class="about-panel"><span class="about-icon">i</span><div><strong>Automatická synchronizace, ne přímé spojení prohlížeče s MT5</strong><p>MT5 modul posílá šifrovaně dokončené svíčky na server; web je čte z API. Nové svíčky se přenesou při běžícím terminálu. Data se mohou lišit mezi brokery a tick volume není skutečný burzovní objem. Odesílání musí odpovídat podmínkám brokera.</p></div></div>
     </div>
   </div>
 </main>
-<footer class="container footer"><span>© <span id="year">2026</span> StockTool · Data Manager BETA</span><span>Výzkumná aplikace · Nejde o investiční doporučení</span></footer>
+<footer class="container footer"><span>© <span id="year">2026</span> StockTool · Data Manager MT5 BETA</span><span>Výzkumná aplikace · Nejde o investiční doporučení</span></footer>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-</body>
-</html>
+</body></html>
