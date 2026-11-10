@@ -33,3 +33,9 @@ button,input,select{font:inherit}button{cursor:pointer}button:disabled{opacity:.
 #api-status{line-height:1.7;overflow-wrap:anywhere}
 #refresh-button{min-height:31px;padding:6px 10px}
 @media(max-width:650px){.chart-controls{flex-wrap:wrap}#refresh-button{flex:1;justify-content:center}}
+
+/* Large stock universes: filter + independently scrollable ticker catalog */
+.dataset-search-label{display:block;margin:14px 0 10px}
+.dataset-search-label input{width:100%;height:39px;border:1px solid #345066;border-radius:8px;padding:0 10px;background:#0c1929;color:#e9f7f5;font-size:13px}
+.datasets-list{max-height:470px;overflow-y:auto;overscroll-behavior:contain;scrollbar-color:#376072 #112236}
+.datasets-list .dataset-item{flex-shrink:0}
