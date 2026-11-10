@@ -191,7 +191,6 @@
     $("stat-timeframe").textContent = "Původní interval " + data.timeframe;
     $("stat-close").textContent = fmtPrice(last.c);
     $("stat-date").textContent = fmtTime(last.t);
-    $("stat-high").textContent = fmtPrice(Math.max(...data.bars.map(b => b.h).slice(-10000), ...data.bars.slice(0, -10000).map(b => b.h).reduce((acc, n) => [Math.max(acc[0], n)], [-Infinity])));
     // For the minimum, calculate in a loop to avoid limits on spread arguments.
     let min = Infinity, max = -Infinity;
     for (const bar of data.bars) { if (bar.l < min) min = bar.l; if (bar.h > max) max = bar.h; }
