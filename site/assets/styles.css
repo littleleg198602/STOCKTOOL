@@ -295,3 +295,7 @@ svg { display: block; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
+
+/* First functional application – Data Manager beta */
+.status-ready { color: #a1f7dc; border-color: #367e6b; background: #12382e; }
+.status-ready i { background: #49e3ba; }
