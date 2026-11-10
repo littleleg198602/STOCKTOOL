@@ -26,7 +26,7 @@ foreach (glob($cfg['store'] . DIRECTORY_SEPARATOR . '*.meta.json') ?: [] as $pat
 // Legacy compatibility: read data files without their small metadata sibling.
 // This path is used only once, until the MT5 bridge updates that dataset.
 foreach (glob($cfg['store'] . DIRECTORY_SEPARATOR . '*.json') ?: [] as $path) {
-    if (str_ends_with($path, '.meta.json')) continue;
+    if (substr($path, -10) === '.meta.json') continue;
     $metaPath = substr($path, 0, -5) . '.meta.json';
     if (is_file($metaPath)) continue;
     $fp = @fopen($path, 'rb');
