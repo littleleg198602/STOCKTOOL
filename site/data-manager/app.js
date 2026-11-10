@@ -99,6 +99,7 @@
   }
 
   async function connect() {
+    if (location.protocol !== "https:") return flash("Připojení vyžaduje HTTPS. Otevři zabezpečenou adresu stocktool.eu.", true);
     const key = $("access-key").value.trim();
     if (key.length < 32) return flash("Zadej svůj API klíč dlouhý alespoň 32 znaků.", true);
     apiKey = key;
