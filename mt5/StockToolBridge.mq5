@@ -7,7 +7,7 @@
 #property description "Read-only candle synchronization to stocktool.eu"
 #property description "Does not place or modify any trades."
 
-input string          InpApiURL         = "https://stocktool.eu/test/data-manager/api/ingest.php";
+input string          InpApiURL         = "https://www.stocktool.eu/test/data-manager/api/ingest.php";
 input string          InpApiKey         = "";
 input string          InpSymbol         = "";          // Empty = current chart symbol
 input ENUM_TIMEFRAMES InpTimeframe      = PERIOD_H1;
