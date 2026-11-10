@@ -73,7 +73,16 @@
       list.append(empty);
       return;
     }
-    catalog.forEach(item => {
+    const term = $("dataset-filter").value.trim().toLocaleUpperCase("cs-CZ");
+    const visible = catalog.filter(item => (item.symbol + " " + item.timeframe).toLocaleUpperCase("cs-CZ").includes(term));
+    if (!visible.length) {
+      const empty = document.createElement("div");
+      empty.className = "empty-small";
+      empty.textContent = "Žádný ticker neodpovídá hledání.";
+      list.append(empty);
+    }
+    // Limit expensive DOM creation when there are thousands of available symbols.
+    visible.slice(0, 120).forEach(item => {
       const id = item.symbol + "|" + item.timeframe;
       const button = document.createElement("button");
       button.type = "button";
@@ -96,6 +105,12 @@
       });
       list.append(button);
     });
+    if (visible.length > 120) {
+      const note = document.createElement("div");
+      note.className = "empty-small";
+      note.textContent = "Zobrazeno prvních 120 z " + num(visible.length) + " výsledků. Pro další ticker použij hledání.";
+      list.append(note);
+    }
   }
 
   async function connect() {
@@ -146,7 +161,7 @@
       }
       renderCatalog();
       if (selected) await loadSelected();
-      else setEmpty("Čeká na svíčky z MT5", "Zapni MT5 a připoj StockToolBridge ke grafu.");
+      else setEmpty("Čeká na svíčky z MT5", "Zapni MT5 a spusť hromadný synchronizační program.");
       $("api-status").textContent = "API dostupné · poslední kontrola " + new Date().toLocaleTimeString("cs-CZ");
       connectedState(true);
     } catch (error) {
@@ -324,6 +339,7 @@
 
   async function initialize() {
     $("year").textContent=String(new Date().getFullYear());
+    $("dataset-filter").addEventListener("input",renderCatalog);
     $("connect-button").addEventListener("click",connect);
     $("access-key").addEventListener("keydown",event=>{if(event.key==="Enter")connect();});
     $("show-key").addEventListener("change",e=>{
