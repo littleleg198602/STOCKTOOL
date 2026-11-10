@@ -88,7 +88,7 @@ bool SendRates(MqlRates &rates[], int from, int count)
    {
       Print("StockTool: upload failed. HTTP=",status," MT5 error=",GetLastError(),
             " response=",CharArrayToString(response,0,128,CP_UTF8));
-      if(status==-1) Print("StockTool: add https://stocktool.eu to MT5 WebRequest whitelist.");
+      if(status==-1) Print("StockTool: add https://www.stocktool.eu to MT5 WebRequest whitelist.");
       return false;
    }
    Print("StockTool: synchronized ",count," ",g_symbol," ",g_tf," closed candles.");
