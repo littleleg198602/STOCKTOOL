@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0a1220">
-<meta name="description" content="StockTool Data Manager – přímá synchronizace svíčkových OHLCV dat z MetaTraderu 5.">
+<meta name="description" content="StockTool Data Manager – automatická hromadná synchronizace akcií z MetaTraderu 5.">
 <title>Data Manager – MT5 Live | StockTool</title>
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="./styles.css"><script src="./app.js" defer></script>
@@ -21,7 +21,7 @@
   <div class="page-heading">
     <div><div class="eyebrow"><span class="status-dot"></span> PŘÍMÉ PROPOJENÍ <span class="eyebrow-divider">//</span> METATRADER 5</div>
       <h1>Data <span>Manager.</span></h1>
-      <p>Historické OHLCV svíčky z tvého MetaTraderu 5, automaticky synchronizované na StockTool. Žádné CSV, žádný ruční export.</p>
+      <p>Historické OHLCV svíčky stovek akcií z tvého MetaTraderu 5. Jeden proces na PC, automatická synchronizace, bez exportů a bez otevírání grafů.</p>
     </div>
     <div class="local-notice"><span class="notice-icon">↗</span><span><strong>MT5 → StockTool</strong><small id="connection-label">Zatím nepřipojeno</small></span></div>
   </div>
@@ -38,16 +38,16 @@
         <details class="export-help">
           <summary>Jak propojit MetaTrader 5?</summary>
           <p>1. Na FORPSI vytvoř neveřejný soubor <code>/stocktool.eu/stocktool-private/config.php</code> s API klíčem (viz návod na GitHubu).</p>
-          <p>2. Otevři <a href="https://github.com/littleleg198602/STOCKTOOL/blob/main/mt5/StockToolBridge.mq5" target="_blank" rel="noopener noreferrer">StockToolBridge.mq5</a>, vlož ho v MT5 do složky <code>MQL5/Experts</code> a zkompiluj v MetaEditoru.</p>
-          <p>3. MT5 → Nástroje → Možnosti → Expertní poradci: povol WebRequest pro <code>https://www.stocktool.eu</code>.</p>
-          <p>4. Připoj poradce ke grafu, vyber symbol a interval, zadej stejný klíč. Modul pouze čte ceny, neobchoduje.</p>
-          <p>5. Otevři tuto stránku, vlož klíč a klikni na Připojit. MT5 musí běžet, aby přicházely další svíčky.</p>
+          <p>2. Na počítači s MT5 spusť <a href="https://github.com/littleleg198602/STOCKTOOL/blob/main/scripts/StockTool-MT5-START.bat" target="_blank" rel="noopener noreferrer">StockTool-MT5-START.bat</a>. Používá <a href="https://github.com/littleleg198602/STOCKTOOL/blob/main/scripts/stocktool_mt5_sync.py" target="_blank" rel="noopener noreferrer">hromadný Python konektor</a> pro stovky symbolů.</p>
+          <p>3. Poprvé zadáš přístupový klíč; Windows ho uloží šifrovaně pouze pro tvůj účet. V MetaTraderu 5 nic neinstaluješ.</p>
+          <p>4. Konektor najde akcie podle seznamu symbolů u brokera a automaticky načte dokončené svíčky, bez otevření jednotlivých grafů.</p>
+          <p>5. Na webu vlož stejný klíč a klikni na Připojit. Pro nové svíčky musí běžet MT5 i hromadný konektor na tvém PC.</p>
         </details>
       </section>
       <section class="panel datasets-panel" aria-labelledby="sets-title">
         <div class="panel-heading"><h2 id="sets-title">Dostupné datasety</h2><span class="count-pill" id="set-count">0</span></div>
-        <div id="datasets-list" class="datasets-list" aria-live="polite"><div class="empty-small">Připoj se k API.</div></div>
-        <p class="datasets-note">Data přicházejí z MT5 do soukromého úložiště na hostingu. Záleží na rozsahu historie dostupné u brokera.</p>
+        <label class="field dataset-search-label" for="dataset-filter"><span>Hledat mezi akciemi</span><input id="dataset-filter" type="search" placeholder="Např. AAPL, MSFT, NVDA…" autocomplete="off"></label><div id="datasets-list" class="datasets-list" aria-live="polite"><div class="empty-small">Připoj se k API.</div></div>
+        <p class="datasets-note">Data přicházejí z MT5 do soukromého úložiště. Aplikace zobrazuje pouze symboly a historii dostupné u tvého brokera.</p>
       </section>
     </aside>
     <div class="workarea">
@@ -68,7 +68,7 @@
             </div>
           </div>
           <div class="chart-wrapper" id="chart-wrapper"><canvas id="chart" height="328" role="img" aria-label="Svíčkový graf aktuálního datasetu"></canvas>
-          <div class="chart-empty" id="chart-empty"><span>▥</span><strong>Žádná data z MT5</strong><small>Připoj API a spusť StockToolBridge v MT5.</small></div></div>
+          <div class="chart-empty" id="chart-empty"><span>▥</span><strong>Žádná data z MT5</strong><small>Připoj API a spusť hromadný Python konektor na PC s MT5.</small></div></div>
           <div class="chart-bottom"><span id="chart-caption">Čas v UTC, podle odeslaných časových značek MT5.</span><span class="legend"><i class="up"></i> Růstová <i class="down"></i> Poklesová</span></div>
           <div class="hover-details" id="hover-details">Po najetí myší na svíčku zde uvidíš OHLCV.</div>
         </div>
@@ -76,7 +76,7 @@
         <div class="table-scroll"><table><thead><tr><th>Čas (MT5, UTC)</th><th>Open</th><th>High</th><th>Low</th><th>Close</th><th>Tick volume</th></tr></thead><tbody id="data-rows"><tr><td colspan="6" class="table-empty">Zatím žádné svíčky.</td></tr></tbody></table></div>
         <div class="pagination"><span id="page-text">—</span><div><button class="page-btn" id="prev-page" type="button" disabled>←</button><button class="page-btn" id="next-page" type="button" disabled>→</button></div></div>
       </section>
-      <div class="about-panel"><span class="about-icon">i</span><div><strong>Automatická synchronizace, ne přímé spojení prohlížeče s MT5</strong><p>MT5 modul posílá šifrovaně dokončené svíčky na server; web je čte z API. Nové svíčky se přenesou při běžícím terminálu. Data se mohou lišit mezi brokery a tick volume není skutečný burzovní objem. Odesílání musí odpovídat podmínkám brokera.</p></div></div>
+      <div class="about-panel"><span class="about-icon">i</span><div><strong>Automatická synchronizace, ne přímé spojení prohlížeče s MT5</strong><p>Hromadný Python konektor čte dokončené svíčky přímo z MT5, bezpečně je posílá na server a web je načítá přes API. Nové svíčky přicházejí při běžícím terminálu a konektoru. Data se mohou lišit mezi brokery a tick volume není skutečný burzovní objem. Odesílání musí odpovídat podmínkám brokera.</p></div></div>
     </div>
   </div>
 </main>
