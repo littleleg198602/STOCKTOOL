@@ -1,17 +1,49 @@
-# STOCKTOOL
+# StockTool.eu
 
-Základ projektu **stocktool.eu** – platforma webových finančních a analytických aplikací.
+Webová platforma pro finanční analytiku, výzkum akcií, obchodních strategií a backtesting.
 
-## Aktuální stav
-- `site/index.html` – testovací stránka pro ověření GitHub → FORPSI.
-- `.github/workflows/deploy-test.yml` – **ručně spouštěné** nasazení přes zabezpečené FTPS pouze do `/www/test/`.
+## Stav – v1.0
 
-## První nasazení
-1. V GitHub repozitáři otevři Settings → Secrets and variables → Actions.
-2. Vytvoř repository secret `FORPSI_FTP_PASSWORD` a vlož do něj heslo k FTP hostingu FORPSI. Heslo nikdy nevkládej do zdrojových souborů ani do chatu.
-3. Otevři Actions → Deploy test to FORPSI → Run workflow (větev main).
-4. Po úspěšném běhu ověř `https://stocktool.eu/test/`.
+První responzivní úvodní stránka s katalogem šesti připravovaných aplikací:
+- JOHNY
+- BUY Scanner
+- SHORT Scanner
+- Order Flow
+- Backtesting
+- Data Manager
 
-Použitý server: `ftpx.forpsi.com`, přihlašovací jméno: `www.stocktool.eu`, FTPS (explicitní TLS) na portu 21.
+Katalog obsahuje interaktivní hledání, přepínače kategorií, detaily plánovaných aplikací a přehled vývoje. Graf na úvodní stránce je pouze ilustrační – nejde o tržní data. Analytické moduly zatím nejsou spuštěné.
 
-**Pozor:** Tento workflow nahrává jen obsah složky `site/` do vzdálené složky `/www/test/`. Nesahá na hlavní `/www/index.*` stránku.
+## Soubory webu
+
+- \`site/index.html\` – vstupní stránka.
+- \`site/assets/styles.css\` – vzhled a mobilní zobrazení.
+- \`site/assets/app.js\` – vyhledávání, filtry, detaily.
+- \`site/assets/favicon.svg\` – ikonka stránky.
+
+Web funguje jako statické HTML, CSS a JavaScript bez instalačních závislostí.
+
+## Nasazení – aktuální postup
+
+Publikujeme **z lokálního PC přes WinSCP na FORPSI**. GitHub používáme pro vývoj a verzování.
+
+1. Změny uložit do větve \`main\`.
+2. Ve Windows spustit existující \`Deploy-StockTool.bat\` (StockTool Deploy v3).
+3. Skript stáhne aktuální \`site/\` a synchronizuje ji do cílového adresáře na FORPSI.
+4. Otevřít [https://stocktool.eu/test/](https://stocktool.eu/test/) a aktualizovat prohlížeč, případně přes Ctrl+F5.
+
+### Ověřená cesta FTP pro multihosting
+
+- FTP host: \`ftpx.forpsi.com\`
+- Uložené připojení WinSCP: \`f0476608.multi@ftpx.forpsi.com\`
+- Cílový adresář: \`/stocktool.eu/www/test/\`
+
+Připojení je potřeba zabezpečit volbou **FTP → TLS/SSL Explicit encryption**, port 21; neukládat přihlašovací údaje do repozitáře. Pokud upravíš název uloženého připojení WinSCP, uprav i místní deploy skript.
+
+**Pozor:** hlavní \`/stocktool.eu/www/\` nesynchronizujeme. Pracujeme pouze v podsložce \`test/\`, aby se nepřepsal stávající web.
+
+Starý \`.github/workflows/deploy-test.yml\` byl test pro nasazení přes GitHub Actions a momentálně se nepoužívá. K publikování používej lokální Deploy v3.
+
+## Další fáze
+
+Po schválení vizuálního vzhledu první funkční webová aplikace, následně samostatné Python služby a datová vrstva. Běžný sdílený hosting FORPSI může vyžadovat oddělené řešení pro trvale běžící Python procesy.
