@@ -1,31 +1,238 @@
 <!doctype html>
 <html lang="cs">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="dark">
-<title>StockTool — test propojení</title>
-<style>
-  :root{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#edf3ff;background:#08121f}
-  *{box-sizing:border-box}
-  body{min-height:100vh;margin:0;display:grid;place-items:center;padding:24px;background:radial-gradient(ellipse at top right,#123a52 0,transparent 50%),#08121f}
-  main{width:min(100%,760px);background:rgba(18,32,48,.88);border:1px solid #2c4657;border-radius:22px;padding:clamp(26px,5vw,52px);box-shadow:0 20px 70px #0005}
-  .brand{letter-spacing:.2em;font-size:14px;font-weight:750;color:#b7c8d8}
-  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#32d5a2;margin-right:9px;box-shadow:0 0 0 5px #32d5a21b}
-  h1{font-size:clamp(32px,5vw,54px);line-height:1.08;margin:28px 0 16px}
-  h1 span{color:#45e0ad}
-  p{font-size:17px;line-height:1.7;color:#bfd0dd}
-  .status{display:inline-flex;align-items:center;color:#d8fcef;background:#104634;border:1px solid #26765a;border-radius:999px;padding:10px 15px;font-size:14px;font-weight:650}
-  footer{border-top:1px solid #294050;padding-top:24px;margin-top:34px;color:#91a9ba;font-size:13px}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#09111f">
+  <meta name="description" content="StockTool – připravovaná platforma analytických webových aplikací pro akcie, obchodní strategie a backtesting.">
+  <title>StockTool | Analytické aplikace pro finanční trhy</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
+  <link rel="stylesheet" href="./assets/styles.css">
+  <script src="./assets/app.js" defer></script>
 </head>
 <body>
-<main>
-  <div class="brand"><span class="dot"></span>STOCKTOOL.EU</div>
-  <h1>Propojení <span>funguje.</span></h1>
-  <p>Tato testovací stránka potvrzuje, že jsme nasadili obsah z GitHubu na webhosting FORPSI. Dalším krokem bude hlavní katalog webových aplikací.</p>
-  <div class="status">✓ GitHub → FTPS → FORPSI</div>
-  <footer>StockTool · Testovací prostředí /test/ · Bez přístupu k obchodním datům</footer>
-</main>
+  <a class="skip-link" href="#obsah">Přejít na obsah</a>
+
+  <header class="site-header">
+    <div class="container nav-shell">
+      <a class="logo" href="#uvod" aria-label="StockTool – úvod">
+        <span class="logo-mark" aria-hidden="true"><svg viewBox="0 0 36 36" fill="none"><path d="M7 23L14 16L19 20L29 10" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 10H29V17" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="logo-word">STOCK<span>TOOL</span><small>.EU</small></span>
+      </a>
+      <button class="menu-toggle" type="button" aria-label="Otevřít navigaci" aria-expanded="false" aria-controls="main-nav">
+        <span></span><span></span><span></span>
+      </button>
+      <nav class="main-nav" id="main-nav" aria-label="Hlavní navigace">
+        <a href="#aplikace">Aplikace</a>
+        <a href="#princip">Jak to funguje</a>
+        <a href="#plan">Plán vývoje</a>
+        <a class="nav-github" href="https://github.com/littleleg198602/STOCKTOOL" target="_blank" rel="noopener noreferrer">
+          GitHub <svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M7 17L17 7M8 7h9v9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="obsah">
+    <section class="hero section" id="uvod">
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <div class="eyebrow"><span class="signal-dot"></span> NOVÁ PLATFORMA VE VÝVOJI <span class="eyebrow-line"></span> STOCKTOOL V1</div>
+          <h1>Jedno místo.<br><span>Všechny tvoje</span><br>analytické nástroje.</h1>
+          <p class="hero-lead">Webové aplikace pro analýzu akcií, hledání obchodních příležitostí a testování strategií. Vše přehledně, bez instalace a postupně pod jednou střechou.</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#aplikace">Prozkoumat aplikace <span aria-hidden="true">↗</span></a>
+            <a class="button button-secondary" href="#princip">Jak to bude fungovat <span aria-hidden="true">↓</span></a>
+          </div>
+          <div class="hero-meta">
+            <span><span class="mini-check">✓</span> Webové rozhraní</span>
+            <span><span class="mini-check">✓</span> Python analytika</span>
+            <span><span class="mini-check">✓</span> Výsledky na jednom místě</span>
+          </div>
+        </div>
+        <div class="hero-visual" aria-label="Ilustrační ukázka připravovaného analytického dashboardu">
+          <div class="visual-glow"></div>
+          <div class="dash-window">
+            <div class="dash-topbar">
+              <div class="traffic-dots"><i></i><i></i><i></i></div>
+              <span>STOCKTOOL / OVERVIEW</span>
+              <span class="demo-pill"><span></span> DEMO NÁHLED</span>
+            </div>
+            <div class="dash-body">
+              <div class="dash-title-row">
+                <div><div class="dash-label">ANALYTICKÝ WORKSPACE</div><h2>Market Overview</h2></div>
+                <div class="dash-date">DEMO / V1.0</div>
+              </div>
+              <div class="metric-grid" aria-hidden="true">
+                <div class="metric-card"><span>Nástroje v plánu</span><strong>06</strong><small>+ rozšiřitelná platforma</small></div>
+                <div class="metric-card"><span>Typ prostředí</span><strong>WEB</strong><small>desktop i mobil</small></div>
+                <div class="metric-card"><span>Analytické jádro</span><strong>PY</strong><small>Python / API</small></div>
+              </div>
+              <div class="chart-card">
+                <div class="chart-header"><div><span>UKÁZKA GRAFU</span><strong>Analytický dashboard</strong></div><span class="chart-tag">ILUSTRACE</span></div>
+                <div class="chart-stage" aria-hidden="true">
+                  <div class="grid-lines"><i></i><i></i><i></i><i></i></div>
+                  <svg class="chart-svg" viewBox="0 0 540 180" preserveAspectRatio="none" fill="none">
+                    <defs><linearGradient id="chartFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#2BE4BD" stop-opacity=".22"/><stop offset="1" stop-color="#2BE4BD" stop-opacity="0"/></linearGradient></defs>
+                    <path d="M0 146L26 134L52 141L78 120L104 127L130 109L156 116L182 86L208 94L234 74L260 82L286 58L312 72L338 49L364 56L390 35L416 44L442 24L468 33L494 16L520 25L540 10V180H0Z" fill="url(#chartFill)"/>
+                    <path d="M0 146L26 134L52 141L78 120L104 127L130 109L156 116L182 86L208 94L234 74L260 82L286 58L312 72L338 49L364 56L390 35L416 44L442 24L468 33L494 16L520 25L540 10" stroke="#34E5BE" stroke-width="2.7" stroke-linejoin="round" stroke-linecap="round"/>
+                    <circle cx="540" cy="10" r="5" fill="#34E5BE" stroke="#092C30" stroke-width="5"/>
+                  </svg>
+                </div>
+                <div class="chart-bottom"><span>BEZ ŽIVÝCH TRŽNÍCH DAT</span><span>UI KONCEPT</span></div>
+              </div>
+              <div class="mini-rows">
+                <span><i class="mini-circle cyan"></i> BUY Scanner <b>PLÁNOVÁNO</b></span>
+                <span><i class="mini-circle orange"></i> SHORT Scanner <b>PLÁNOVÁNO</b></span>
+              </div>
+            </div>
+          </div>
+          <div class="floating-label"><span>✦</span><div><strong>Built for research</strong><small>Od dat k rozhodnutí</small></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="proof-strip" aria-label="Pilíře platformy">
+      <div class="container proof-inner">
+        <div><span class="proof-icon">⌘</span><span>JEDNA PLATFORMA</span></div>
+        <i></i>
+        <div><span class="proof-icon">◎</span><span>SAMOSTATNÉ APLIKACE</span></div>
+        <i></i>
+        <div><span class="proof-icon">◷</span><span>HISTORIE A BACKTESTY</span></div>
+        <i></i>
+        <div><span class="proof-icon">◇</span><span>POSTUPNÝ VÝVOJ</span></div>
+      </div>
+    </section>
+
+    <section class="section apps-section" id="aplikace">
+      <div class="container">
+        <div class="section-header">
+          <div>
+            <span class="kicker"><span class="kicker-slash">//</span> APP LIBRARY</span>
+            <h2>Naše <span>aplikace</span></h2>
+            <p>Každý nástroj bude mít vlastní webové rozhraní, ale společnou logiku práce s daty a výsledky. Zatím jde o plánované moduly.</p>
+          </div>
+          <div class="section-count"><strong>06</strong><span>plánovaných<br>aplikací</span></div>
+        </div>
+        <div class="catalog-tools">
+          <div class="filter-chips" role="group" aria-label="Filtrovat aplikace">
+            <button class="filter-chip active" type="button" data-filter="all" aria-pressed="true">Všechny <span>06</span></button>
+            <button class="filter-chip" type="button" data-filter="akcie" aria-pressed="false">Akcie</button>
+            <button class="filter-chip" type="button" data-filter="strategie" aria-pressed="false">Strategie</button>
+            <button class="filter-chip" type="button" data-filter="data" aria-pressed="false">Data</button>
+          </div>
+          <label class="search-box"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="1.7"/><path d="m16 16 4.2 4.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span class="sr-only">Hledat aplikaci</span><input id="app-search" type="search" placeholder="Hledat nástroj..." autocomplete="off"></label>
+        </div>
+        <div class="apps-grid" id="apps-grid">
+          <article class="app-card accent-violet" data-category="akcie" data-search="johny fundamentální analýza akcií finanční výkazy dividendy">
+            <div class="app-card-head"><div class="app-icon"><span>J</span></div><span class="status status-planned"><i></i> Ve vývoji</span></div>
+            <div class="app-number">01 / ANALÝZA AKCIÍ</div><h3>JOHNY</h3>
+            <p>Fundamentální analýza firem, finančních výkazů, ocenění a dlouhodobých investičních příležitostí.</p>
+            <div class="tag-row"><span>Fundamenty</span><span>Valuace</span><span>Dividendové akcie</span></div>
+            <button class="card-link" type="button" data-app="johny">Detail aplikace <span aria-hidden="true">↗</span></button>
+          </article>
+
+          <article class="app-card accent-mint" data-category="akcie" data-search="buy scanner akcie nákupní příležitosti forced selling order flow">
+            <div class="app-card-head"><div class="app-icon"><svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M6 24 13 17 18 21 26 9M19 9h7v7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="status status-planned"><i></i> Ve vývoji</span></div>
+            <div class="app-number">02 / NÁKUPNÍ SIGNÁLY</div><h3>BUY Scanner</h3>
+            <p>Vyhledávání potenciálně podhodnocených akcií a zajímavých nákupních situací pomocí více filtrů.</p>
+            <div class="tag-row"><span>BUY</span><span>Screening</span><span>Signály</span></div>
+            <button class="card-link" type="button" data-app="buy">Detail aplikace <span aria-hidden="true">↗</span></button>
+          </article>
+
+          <article class="app-card accent-rose" data-category="akcie" data-search="short scanner sell prodej shortování rizikové akcie">
+            <div class="app-card-head"><div class="app-icon"><svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M6 8 13 15 18 11 26 23M19 23h7v-7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="status status-planned"><i></i> Ve vývoji</span></div>
+            <div class="app-number">03 / PRODEJNÍ SIGNÁLY</div><h3>SHORT Scanner</h3>
+            <p>Samostatná analýza slabých titulů, rizikových faktorů a možných příležitostí na pokles ceny.</p>
+            <div class="tag-row"><span>SHORT</span><span>Risk</span><span>Screening</span></div>
+            <button class="card-link" type="button" data-app="short">Detail aplikace <span aria-hidden="true">↗</span></button>
+          </article>
+
+          <article class="app-card accent-blue" data-category="strategie data" data-search="order flow tok objednávek kapitálu forced selling panika volatilita">
+            <div class="app-card-head"><div class="app-icon"><svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M4 18h5l4-9 6 15 4-9h5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="status status-planned"><i></i> Ve vývoji</span></div>
+            <div class="app-number">04 / TRŽNÍ CHOVÁNÍ</div><h3>Order Flow</h3>
+            <p>Výzkum toku objednávek, tržní paniky, forced sellingu a změn sentimentu na trzích.</p>
+            <div class="tag-row"><span>Order Flow</span><span>Sentiment</span><span>Forced Selling</span></div>
+            <button class="card-link" type="button" data-app="flow">Detail aplikace <span aria-hidden="true">↗</span></button>
+          </article>
+
+          <article class="app-card accent-amber" data-category="strategie" data-search="backtesting testování strategií výkon drawdown historické výsledky">
+            <div class="app-card-head"><div class="app-icon"><svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect x="5" y="5" width="22" height="22" rx="4" stroke="currentColor" stroke-width="2"/><path d="M9 21 14 15 18 18 23 10" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="status status-planned"><i></i> Ve vývoji</span></div>
+            <div class="app-number">05 / TESTOVÁNÍ STRATEGIÍ</div><h3>Backtesting</h3>
+            <p>Historické testy obchodních pravidel, metriky výkonnosti, drawdown a přehled transakcí.</p>
+            <div class="tag-row"><span>Strategie</span><span>Výsledky</span><span>Riziko</span></div>
+            <button class="card-link" type="button" data-app="backtest">Detail aplikace <span aria-hidden="true">↗</span></button>
+          </article>
+
+          <article class="app-card accent-teal" data-category="data" data-search="data manager mt5 svíčky ohlcv historie databáze synchronizace">
+            <div class="app-card-head"><div class="app-icon"><svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><ellipse cx="16" cy="8" rx="10" ry="4" stroke="currentColor" stroke-width="2"/><path d="M6 8v8c0 2.2 4.5 4 10 4s10-1.8 10-4V8M6 16v8c0 2.2 4.5 4 10 4s10-1.8 10-4v-8" stroke="currentColor" stroke-width="2"/></svg></div><span class="status status-planned"><i></i> Ve vývoji</span></div>
+            <div class="app-number">06 / DATOVÁ INFRASTRUKTURA</div><h3>Data Manager</h3>
+            <p>Společná správa historických svíček, importu dat z MT5 a dostupnosti dat pro ostatní aplikace.</p>
+            <div class="tag-row"><span>OHLCV</span><span>MT5</span><span>Historie</span></div>
+            <button class="card-link" type="button" data-app="data">Detail aplikace <span aria-hidden="true">↗</span></button>
+          </article>
+        </div>
+        <div class="no-results" id="no-results" hidden><strong>Žádné odpovídající aplikace</strong><p>Zkus jiný výraz nebo přepni filtr.</p><button class="button button-secondary" type="button" id="reset-filters">Zobrazit všechny</button></div>
+        <p class="catalog-note"><span aria-hidden="true">ⓘ</span> Uvedené aplikace jsou návrhem budoucích modulů, nikoliv již spuštěné služby.</p>
+      </div>
+    </section>
+
+    <section class="section approach-section" id="princip">
+      <div class="container">
+        <div class="section-header compact"><div><span class="kicker"><span class="kicker-slash">//</span> JAK TO BUDE FUNGOVAT</span><h2>Jeden základ. <span>Více možností.</span></h2><p>Nepotřebujeme šest různých webů. Jedna platforma propojí analytické nástroje, data i výsledky.</p></div></div>
+        <div class="workflow">
+          <div class="workflow-item"><div class="step-label">01</div><div class="step-icon">⌘</div><h3>Vybereš aplikaci</h3><p>Otevřeš konkrétní nástroj přímo v prohlížeči bez instalace programu.</p></div>
+          <div class="workflow-connector" aria-hidden="true">→</div>
+          <div class="workflow-item"><div class="step-label">02</div><div class="step-icon">{ }</div><h3>Proběhne analýza</h3><p>Výpočty zajistí Python služby nebo další vhodné výpočetní prostředí.</p></div>
+          <div class="workflow-connector" aria-hidden="true">→</div>
+          <div class="workflow-item"><div class="step-label">03</div><div class="step-icon">▥</div><h3>Uvidíš výsledky</h3><p>Grafy, tabulky, srovnání a historie budou přístupné na jednom místě.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section roadmap-section" id="plan">
+      <div class="container roadmap-wrap">
+        <div class="roadmap-copy">
+          <span class="kicker"><span class="kicker-slash">//</span> ROADMAP</span>
+          <h2>Budujeme to <span>postupně.</span></h2>
+          <p>Nejdřív kvalitní webový základ, potom první skutečně funkční analytická aplikace a následně společná datová vrstva.</p>
+          <a class="text-link" href="#aplikace">Zpět ke katalogu <span aria-hidden="true">↗</span></a>
+        </div>
+        <div class="timeline">
+          <div class="timeline-item is-current"><span class="timeline-dot"></span><div><div class="timeline-top"><strong>01 · Základ platformy</strong><span>PRÁVĚ NYNÍ</span></div><p>Úvodní stránka, katalog aplikací, responzivní design a jednoduché publikování.</p></div></div>
+          <div class="timeline-item"><span class="timeline-dot"></span><div><div class="timeline-top"><strong>02 · První funkční aplikace</strong><span>DALŠÍ KROK</span></div><p>Výběr prvního nástroje, jeho rozhraní, vstupní parametry a reálné výpočty.</p></div></div>
+          <div class="timeline-item"><span class="timeline-dot"></span><div><div class="timeline-top"><strong>03 · Data, historie a účty</strong><span>POZDĚJI</span></div><p>Sdílené zdroje dat, archiv analýz, správa přístupu a postupné rozšiřování.</p></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="closing-section">
+      <div class="container">
+        <div class="closing-panel">
+          <div><span class="kicker"><span class="kicker-slash">//</span> STOCKTOOL.EU</span><h2>Od nápadu k aplikaci.</h2><p>Propojujeme vývoj analytických strategií s přehledným webovým prostředím.</p></div>
+          <a href="#aplikace" class="button button-light">Prohlédnout nástroje <span aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div><a class="logo footer-logo" href="#uvod"><span class="logo-mark" aria-hidden="true"><svg viewBox="0 0 36 36" fill="none"><path d="M7 23L14 16L19 20L29 10M22 10H29V17" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="logo-word">STOCK<span>TOOL</span><small>.EU</small></span></a><p>Vývoj webových analytických nástrojů.</p></div>
+      <div class="footer-end"><span>© <span id="year">2026</span> StockTool</span><span>Verze stránky 1.0 · Testovací provoz</span></div>
+    </div>
+    <div class="container disclaimer">Obsah webu slouží k výzkumu a vzdělávání; nepředstavuje investiční doporučení. Funkce a ukázky jsou zatím ve vývoji.</div>
+  </footer>
+
+  <dialog class="app-dialog" id="app-dialog" aria-labelledby="dialog-title">
+    <div class="dialog-inner">
+      <div class="dialog-top"><span class="kicker"><span class="kicker-slash">//</span> DETAIL APLIKACE</span><button class="dialog-close" id="close-dialog" type="button" aria-label="Zavřít detail">×</button></div>
+      <div class="dialog-icon" id="dialog-symbol"></div>
+      <h2 id="dialog-title"></h2>
+      <p id="dialog-description"></p>
+      <div class="dialog-state"><span class="signal-dot"></span> Aplikace se připravuje</div>
+      <div class="dialog-foot"><p>Tento modul bude dostupný v některé z dalších verzí StockTool.</p><button class="button button-secondary" id="dialog-ok" type="button">Rozumím</button></div>
+    </div>
+  </dialog>
 </body>
 </html>
