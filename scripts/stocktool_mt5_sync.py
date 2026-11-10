@@ -88,7 +88,7 @@ def ask_api_key() -> str:
             result = simpledialog.askstring(
                 "StockTool – API klíč",
                 "Vlož svůj StockTool API klíč z FORPSI (Ctrl+V):\n"
-                "Znakům se kvůli ochraně klíče zobrazují pouze hvězdičky.",
+                "Z bezpečnostních důvodů se místo znaků zobrazují hvězdičky.",
                 parent=root,
                 show="*",
             )
@@ -97,10 +97,10 @@ def ask_api_key() -> str:
         if result is None:
             raise RuntimeError("Zadání klíče bylo zrušeno.")
         return result.strip()
-    except (ImportError, RuntimeError) as exc:
+    except Exception as exc:
         if isinstance(exc, RuntimeError) and str(exc) == "Zadání klíče bylo zrušeno.":
             raise
-        print("Grafické okno není dostupné; použij pravé tlačítko pro vložení klíče.")
+        print("Grafické okno nelze otevřít; použij pravé tlačítko pro vložení klíče.")
         print("V konzoli se vložené znaky z bezpečnostních důvodů nezobrazují.")
         return getpass.getpass("StockTool API klíč: ").strip()
 
