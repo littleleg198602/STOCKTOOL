@@ -72,4 +72,18 @@ if ($encoded === false || ftruncate($fp, 0) === false || rewind($fp) === false |
 }
 flock($fp, LOCK_UN);
 fclose($fp);
+
+// Lightweight catalog entry: the viewer need not parse 700 large candle files
+// just to display which instruments are available.
+$metaPath = substr($path, 0, -5) . '.meta.json';
+$meta = json_encode([
+    'symbol' => $symbol,
+    'timeframe' => $timeframe,
+    'count' => count($bars),
+    'last_time' => count($bars) ? (int)$bars[count($bars) - 1]['t'] : null,
+    'updated_at' => $output['updated_at'],
+], JSON_UNESCAPED_SLASHES);
+if ($meta === false || file_put_contents($metaPath, $meta, LOCK_EX) === false) {
+    respond(503, ['ok' => false, 'error' => 'metadata_write_failed']);
+}
 respond(200, ['ok' => true, 'symbol' => $symbol, 'timeframe' => $timeframe, 'received' => count($clean), 'stored' => count($bars)]);
