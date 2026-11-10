@@ -28,7 +28,7 @@ function setup(): array {
     }
     $config = require $path;
     $key = is_array($config) ? ($config['api_key'] ?? '') : '';
-    if (!is_string($key) || strlen($key) < 32) {
+    if (!is_string($key) || strlen($key) < 32 || strpos($key, 'SEM_VLOZ') !== false) {
         respond(503, ['ok' => false, 'error' => 'invalid_private_configuration']);
     }
     $provided = $_SERVER['HTTP_X_STOCKTOOL_KEY'] ?? '';
