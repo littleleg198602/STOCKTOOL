@@ -85,3 +85,7 @@ button,input,select{font:inherit}button{cursor:pointer}button:disabled{opacity:.
  .data-quality>div:last-child{grid-column:1/-1}
  .dataset-timeframe-row{gap:8px}
 }
+
+/* Cross-app navigation */
+.dm-buy-link{color:#69eac5!important}
+@media(max-width:650px){.topbar-right>.back-link:last-child{display:none}.dm-buy-link{white-space:nowrap}}
