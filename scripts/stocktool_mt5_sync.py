@@ -28,6 +28,33 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 from urllib.parse import urlparse
 
+
+_TLS_CONTEXT = None
+
+
+def https_context():
+    """Verify TLS using the Windows system trust store (not insecure mode).
+
+    Windows Schannel can retrieve missing intermediate certificates when
+    Python/OpenSSL cannot build the certificate chain on its own.
+    """
+    global _TLS_CONTEXT
+    if _TLS_CONTEXT is not None:
+        return _TLS_CONTEXT
+    if os.name == "nt":
+        try:
+            import truststore
+        except ImportError as exc:
+            raise RuntimeError(
+                "Chybi balik truststore pro certifikaty Windows. "
+                "Spust: py -3 -m pip install truststore"
+            ) from exc
+        _TLS_CONTEXT = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    else:
+        _TLS_CONTEXT = ssl.create_default_context()
+    return _TLS_CONTEXT
+
+
 API_URL = "https://www.stocktool.eu/test/data-manager/api/ingest.php"
 PRIVATE_FOLDER = Path.home() / ".stocktool"
 SECRET_PATH = PRIVATE_FOLDER / "api_key.dpapi"
@@ -234,7 +261,7 @@ def preflight(api_key: str) -> None:
             **headers
         }, method="GET")
         try:
-            with urlopen(request, timeout=15, context=ssl.create_default_context()) as response:
+            with urlopen(request, timeout=15, context=https_context()) as response:
                 final_url = response.geturl()
                 if not final_url.startswith("https://"):
                     raise RuntimeError("Server přesměroval HTTPS na nezabezpečené HTTP.")
@@ -262,7 +289,7 @@ def post_chunk(api_key: str, symbol: str, timeframe: str, bars: list[dict], dela
     last_error = None
     for attempt in range(3):
         try:
-            with urlopen(req, timeout=25, context=ssl.create_default_context()) as response:
+            with urlopen(req, timeout=25, context=https_context()) as response:
                 data = json.loads(response.read(100000).decode("utf-8"))
                 if not data.get("ok"):
                     raise RuntimeError("Server vrátil neúspěšnou odpověď.")
