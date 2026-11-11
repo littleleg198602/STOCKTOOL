@@ -181,7 +181,8 @@
       catalog = result.datasets || [];
       if (catalog.length) {
         if (!catalog.some(d => d.symbol + "|" + d.timeframe === selected)) {
-          selected = catalog[0].symbol + "|" + catalog[0].timeframe;
+          const preferred = catalog.find(row => row.timeframe === "D1") || catalog[0];
+          selected = preferred.symbol + "|" + preferred.timeframe;
           page = 0;
         }
       } else {
