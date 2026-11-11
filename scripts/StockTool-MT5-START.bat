@@ -8,6 +8,13 @@ echo STOCKTOOL - AUTOMATICKA SYNCHRONIZACE AKCII MT5
 echo ==================================================
 echo.
 echo Nejprve overuji spojeni s FORPSI.
+echo Kontroluji bezpecne overovani HTTPS certifikatu Windows...
+py -3 -c "import truststore" >nul 2>&1
+if errorlevel 1 (
+  echo Instaluji knihovnu truststore pro systemove certifikaty...
+  py -3 -m pip install --disable-pip-version-check truststore
+  if errorlevel 1 goto failed
+)
 py -3 "%~dp0stocktool_mt5_sync.py" --check-api
 if errorlevel 1 goto failed
 echo.
