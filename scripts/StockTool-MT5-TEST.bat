@@ -1,29 +1,28 @@
 @echo off
-chcp 65001 >nul
-title STOCKTOOL - MT5 TEST 10 AKCII
+setlocal
+title STOCKTOOL - MT5 TEST
 cd /d "%~dp0"
+
+echo ==================================================
+echo STOCKTOOL - SPOJENI FORPSI A TEST 10 AKCII
+echo ==================================================
 echo.
-echo ===============================================
-echo   STOCKTOOL - TEST PRIMYCH DAT Z MT5
-echo   Maximalne 10 akcii, 300 D1 svíček na akcii.
-echo ===============================================
+echo Nejprve overim spojeni s API (bez odesilani svicek).
+py -3 "%~dp0stocktool_mt5_sync.py" --check-api
+if errorlevel 1 goto failed
 echo.
-echo Nezapomen mit otevreny a prihlaseny MetaTrader 5.
-echo.
-py -3 -c "import MetaTrader5" >nul 2>&1
-if errorlevel 1 (
-  echo Instaluji chybejici oficialni knihovnu MetaTrader5...
-  py -3 -m pip install MetaTrader5
-  if errorlevel 1 goto error
-)
+echo API je OK. Spoustim synchronizaci 10 akcii z MT5.
+echo MetaTrader 5 musi byt otevren a prihlasen.
 py -3 "%~dp0stocktool_mt5_sync.py" --once --universe stocks --max-symbols 10 --timeframe D1 --initial-bars 300
-if errorlevel 1 goto error
+if errorlevel 1 goto failed
 echo.
-echo Test ukoncen. Zkontroluj pocet odeslanych svíček vyse.
+echo Test dokoncen. Zkontroluj vysledek vyse.
 pause
 exit /b 0
-:error
+
+:failed
 echo.
-echo Problem pri prvnim testu. Posli nam vypis chyby BEZ tajneho klice.
+echo Test se nepodaril. Posli screenshot chyby bez API klice.
+echo Neni nutne znovu vytvaret klic na FORPSI.
 pause
 exit /b 1
