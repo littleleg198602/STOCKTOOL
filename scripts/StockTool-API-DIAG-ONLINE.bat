@@ -14,6 +14,13 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreferen
 if errorlevel 1 goto download_failed
 echo.
 echo Spoustim kontrolu HTTPS a API klice.
+echo Kontroluji bezpecne overovani HTTPS certifikatu Windows...
+py -3 -c "import truststore" >nul 2>&1
+if errorlevel 1 (
+  echo Instaluji knihovnu truststore pro systemove certifikaty...
+  py -3 -m pip install --disable-pip-version-check truststore
+  if errorlevel 1 goto end_error
+)
 py -3 "%TMP_PY%" --check-api
 set "RESULT=%errorlevel%"
 del /q "%TMP_PY%" >nul 2>&1
