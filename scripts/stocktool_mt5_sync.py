@@ -210,6 +210,44 @@ def rates_to_bars(rates, before_time: int) -> list[dict]:
     return list({bar["t"]: bar for bar in sorted(out, key=lambda b: b["t"])}.values())
 
 
+def error_detail(exc: Exception) -> str:
+    """Keep the underlying TLS/DNS/timeout reason (never expose credentials)."""
+    if isinstance(exc, HTTPError):
+        return f"HTTP {exc.code} {exc.reason}"
+    if isinstance(exc, URLError):
+        reason = exc.reason
+        return f"URLError: {type(reason).__name__}: {reason}"
+    return f"{type(exc).__name__}: {exc}"
+
+
+def preflight(api_key: str) -> None:
+    """Check HTTPS reachability and authentication once before touching 700 tickers."""
+    root = API_URL.rsplit("/", 1)[0]
+    endpoints = [
+        ("stav API", root + "/status.php", {}),
+        ("ověření klíče", root + "/datasets.php", {"X-StockTool-Key": api_key}),
+    ]
+    for label, url, headers in endpoints:
+        request = Request(url, headers={
+            "Accept": "application/json", "User-Agent": "StockToolMT5Bulk/1.1",
+            **headers
+        }, method="GET")
+        try:
+            with urlopen(request, timeout=15, context=ssl.create_default_context()) as response:
+                final_url = response.geturl()
+                if not final_url.startswith("https://"):
+                    raise RuntimeError("Server přesměroval HTTPS na nezabezpečené HTTP.")
+                data = json.loads(response.read(200000).decode("utf-8"))
+                if not data.get("ok"):
+                    raise RuntimeError(f"{label}: server nevrátil ok:true.")
+                if label == "stav API" and not data.get("configured"):
+                    raise RuntimeError("API ještě nemá nastavený soukromý config.php na FORPSI.")
+        except (HTTPError, URLError, TimeoutError, OSError, ValueError) as exc:
+            raise ConnectionError(f"Nelze provést {label} ({url}): {error_detail(exc)}") from exc
+        log(f"OK: {label} – HTTPS funguje.")
+    log("Připojení na FORPSI v pořádku. Začínám synchronizovat svíčky z MT5.")
+
+
 def post_chunk(api_key: str, symbol: str, timeframe: str, bars: list[dict], delay: float) -> None:
     payload = json.dumps({"symbol": symbol, "timeframe": timeframe, "bars": bars}, separators=(",", ":")).encode("utf-8")
     if len(payload) > 500000:
@@ -235,7 +273,7 @@ def post_chunk(api_key: str, symbol: str, timeframe: str, bars: list[dict], dela
             if exc.code in (400, 401, 403, 405, 413, 422):
                 raise RuntimeError(f"Server odmítl data ({last_error}); ověř nastavení/klíč.") from exc
         except (URLError, TimeoutError, OSError, ValueError) as exc:
-            last_error = type(exc).__name__
+            last_error = error_detail(exc)
         time.sleep(min(2 ** attempt * 2, 8))
     raise RuntimeError(f"Synchronizace se serverem selhala ({last_error}).")
 
@@ -343,6 +381,7 @@ def main() -> int:
             for symbol in symbols: print(symbol)
             return 0
         key = get_api_key(cfg.reset_key)
+        preflight(key)
         state = load_state()
         while True:
             run_cycle(mt5, cfg, key, state, symbols)
