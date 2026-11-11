@@ -150,6 +150,7 @@ def save_state(state: dict) -> None:
 def arguments() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="StockTool – automatická hromadná synchronizace MT5 (bez CSV).")
     mode = p.add_mutually_exclusive_group()
+    mode.add_argument("--check-api", action="store_true", help="Zkontroluje HTTPS a API klíč bez připojení MT5.")
     mode.add_argument("--discover", action="store_true", help="Vypíše detekované akcie u brokera, bez odesílání.")
     mode.add_argument("--once", action="store_true", help="Provede jednu synchronizaci a skončí.")
     mode.add_argument("--loop", action="store_true", help="Pravidelně synchronizuje, dokud běží počítač a MT5.")
@@ -364,6 +365,15 @@ def main() -> int:
     if cfg.delay < 0.1 or not 1 <= cfg.interval_minutes <= 1440:
         print("Chyba: --delay nejméně 0.1 s; --interval-minutes 1..1440.", file=sys.stderr)
         return 2
+    if cfg.check_api:
+        try:
+            log("Kontroluji HTTPS spojeni na StockTool; bez MT5 a bez odesilani svíček.")
+            preflight(get_api_key(cfg.reset_key))
+            log("VYSLEDEK: API dostupne a klic spravny.")
+            return 0
+        except Exception as error:
+            log(f"VYSLEDEK: CHYBA spojeni – {error}")
+            return 1
     try:
         import MetaTrader5 as mt5
     except ImportError:
