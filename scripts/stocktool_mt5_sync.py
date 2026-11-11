@@ -275,7 +275,7 @@ def post_chunk(api_key: str, symbol: str, timeframe: str, bars: list[dict], dela
         except (URLError, TimeoutError, OSError, ValueError) as exc:
             last_error = error_detail(exc)
         time.sleep(min(2 ** attempt * 2, 8))
-    raise RuntimeError(f"Synchronizace se serverem selhala ({last_error}).")
+    raise ConnectionError(f"HTTPS spojení se StockTool API selhalo ({last_error}).")
 
 
 def sync_one(mt5, symbol: str, cfg: argparse.Namespace, key: str, state: dict) -> tuple[str, int]:
@@ -340,6 +340,11 @@ def run_cycle(mt5, cfg: argparse.Namespace, key: str, state: dict, symbols: list
             else:
                 stats["failed"] += 1
                 log(f"[{i}/{len(symbols)}] {symbol}: {status}")
+        except ConnectionError as error:
+            stats["failed"] += 1
+            log(f"[{i}/{len(symbols)}] {symbol}: CHYBA {error}")
+            log("Zastavuji cyklus: problém se serverem/HTTPS. Nepokouším se poslat dalších 700 tickerů.")
+            break
         except Exception as error:
             stats["failed"] += 1
             log(f"[{i}/{len(symbols)}] {symbol}: CHYBA {error}")
