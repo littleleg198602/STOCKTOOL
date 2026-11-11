@@ -299,7 +299,7 @@ def post_chunk(api_key: str, symbol: str, timeframe: str, bars: list[dict], dela
         except HTTPError as exc:
             last_error = f"HTTP {exc.code}"
             if exc.code in (400, 401, 403, 405, 413, 422):
-                raise RuntimeError(f"Server odmítl data ({last_error}); ověř nastavení/klíč.") from exc
+                raise ConnectionError(f"Server odmítl data ({last_error}); ověř nastavení/klíč.") from exc
         except (URLError, TimeoutError, OSError, ValueError) as exc:
             last_error = error_detail(exc)
         time.sleep(min(2 ** attempt * 2, 8))
@@ -354,8 +354,9 @@ def sync_one(mt5, symbol: str, cfg: argparse.Namespace, key: str, state: dict) -
             mt5.symbol_select(symbol, False)
 
 
-def run_cycle(mt5, cfg: argparse.Namespace, key: str, state: dict, symbols: list[str]) -> None:
+def run_cycle(mt5, cfg: argparse.Namespace, key: str, state: dict, symbols: list[str]) -> bool:
     stats = {"ok": 0, "unchanged": 0, "failed": 0, "bars": 0}
+    fatal = False
     started = time.monotonic()
     for i, symbol in enumerate(symbols, 1):
         try:
@@ -372,6 +373,7 @@ def run_cycle(mt5, cfg: argparse.Namespace, key: str, state: dict, symbols: list
             stats["failed"] += 1
             log(f"[{i}/{len(symbols)}] {symbol}: CHYBA {error}")
             log("Zastavuji cyklus: problém se serverem/HTTPS. Nepokouším se poslat dalších 700 tickerů.")
+            fatal = True
             break
         except Exception as error:
             stats["failed"] += 1
@@ -382,6 +384,10 @@ def run_cycle(mt5, cfg: argparse.Namespace, key: str, state: dict, symbols: list
                 f"odesláno svíček {stats['bars']:,}")
     log(f"Cyklus dokončen: {len(symbols)} instrumentů, {stats['bars']:,} svíček, "
         f"{stats['failed']} problémů. Doba {round(time.monotonic()-started)} s.")
+    if fatal or (stats["ok"] == 0 and stats["unchanged"] == 0):
+        log("TEST NEPROSEL: zatím nebyla ověřena synchronizace žádného symbolu.")
+        return False
+    return True
 
 
 def main() -> int:
@@ -426,7 +432,8 @@ def main() -> int:
         preflight(key)
         state = load_state()
         while True:
-            run_cycle(mt5, cfg, key, state, symbols)
+            if not run_cycle(mt5, cfg, key, state, symbols):
+                return 7
             if not cfg.loop:
                 return 0
             log(f"Další kontrola nejdříve za {cfg.interval_minutes:g} minut. Ukončení: Ctrl+C.")
