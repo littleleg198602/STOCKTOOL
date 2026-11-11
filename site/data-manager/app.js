@@ -15,6 +15,7 @@
   let aggregated = [];
   let chartBars = [];
   let page = 0;
+  let previousSourceTimeframe = "";
   let busy = false;
   let toastTimer;
 
@@ -166,6 +167,7 @@
     rawBars = [];
     aggregated = [];
     chartBars = [];
+    previousSourceTimeframe = "";
     page = 0;
     connectedState(false);
     renderCatalog();
@@ -233,7 +235,8 @@
     $("available-frames").textContent = "Originální MT5 data: " +
       available.map(entry => entry.timeframe).join(", ");
 
-    const activeTF = $("view-timeframe").value;
+    const activeTF = previousSourceTimeframe === timeframe ? $("view-timeframe").value : timeframe;
+    previousSourceTimeframe = timeframe;
     const allowed = Object.keys(PERIODS).filter(tf => PERIODS[tf] >= PERIODS[timeframe]);
     const selector = $("view-timeframe");
     selector.replaceChildren();
