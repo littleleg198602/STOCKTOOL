@@ -15,16 +15,22 @@
     <span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="m5 21 8-8 6 5 8-10M21 8h6v6" stroke="currentColor" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round"/></svg></span>
     <span>STOCK<span>TOOL</span><small>.EU</small></span>
   </a>
-  <div class="topbar-right"><span class="topbar-title">/ DATA MANAGER</span><span class="version-tag">MT5 BRIDGE · BETA</span><a class="back-link" href="../">← Platforma</a></div>
+  <div class="topbar-right"><span class="topbar-title">/ DATA MANAGER</span><span class="version-tag">MT5 BRIDGE · V0.3</span><a class="back-link" href="../">← Platforma</a></div>
 </div></header>
 <main class="container" id="main">
   <div class="page-heading">
     <div><div class="eyebrow"><span class="status-dot"></span> PŘÍMÉ PROPOJENÍ <span class="eyebrow-divider">//</span> METATRADER 5</div>
       <h1>Data <span>Manager.</span></h1>
-      <p>Historické OHLCV svíčky stovek akcií z tvého MetaTraderu 5. Jeden proces na PC, automatická synchronizace, bez exportů a bez otevírání grafů.</p>
+      <p>Historické OHLCV svíčky stovek akcií přímo z MetaTraderu 5. Jeden proces pro H1, H4, D1 a W1, automatická synchronizace a kontrola dostupnosti dat.</p>
     </div>
     <div class="local-notice"><span class="notice-icon">↗</span><span><strong>MT5 → StockTool</strong><small id="connection-label">Zatím nepřipojeno</small></span></div>
   </div>
+  <section class="coverage-bar" aria-label="Souhrn dat z MT5">
+    <div class="coverage-stat"><span>Unikátní akcie</span><strong id="summary-symbols">—</strong></div>
+    <div class="coverage-stat"><span>Datasety</span><strong id="summary-datasets">—</strong></div>
+    <div class="coverage-stat"><span>Uložené svíčky</span><strong id="summary-bars">—</strong></div>
+    <div class="coverage-stat coverage-update"><span>Poslední aktualizace</span><strong id="summary-updated">—</strong></div>
+  </section>
   <div class="app-layout">
     <aside class="sidebar">
       <section class="panel import-panel" aria-labelledby="connection-title">
@@ -38,26 +44,32 @@
         <details class="export-help">
           <summary>Jak propojit MetaTrader 5?</summary>
           <p>1. Na FORPSI vytvoř neveřejný soubor <code>/stocktool.eu/stocktool-private/config.php</code> s API klíčem (viz návod na GitHubu).</p>
-          <p>2. Na počítači s MT5 spusť <a href="https://github.com/littleleg198602/STOCKTOOL/blob/main/scripts/StockTool-MT5-START.bat" target="_blank" rel="noopener noreferrer">StockTool-MT5-START.bat</a>. Používá <a href="https://github.com/littleleg198602/STOCKTOOL/blob/main/scripts/stocktool_mt5_sync.py" target="_blank" rel="noopener noreferrer">hromadný Python konektor</a> pro stovky symbolů.</p>
+          <p>2. Na počítači s běžícím MT5 spusť <a href="https://github.com/littleleg198602/STOCKTOOL/blob/main/scripts/StockTool-MT5-MULTI-TF.bat" target="_blank" rel="noopener noreferrer">StockTool-MT5-MULTI-TF.bat</a>. Jeden Python konektor postupně načítá všechny akcie a časové rámce.</p>
           <p>3. Poprvé zadáš přístupový klíč; Windows ho uloží šifrovaně pouze pro tvůj účet. V MetaTraderu 5 nic neinstaluješ.</p>
-          <p>4. Konektor najde akcie podle seznamu symbolů u brokera a automaticky načte dokončené svíčky, bez otevření jednotlivých grafů.</p>
-          <p>5. Na webu vlož stejný klíč a klikni na Připojit. Pro nové svíčky musí běžet MT5 i hromadný konektor na tvém PC.</p>
+          <p>4. Konektor najde akcie u brokera a synchronizuje samostatná originální MT5 data H1, H4, D1 a W1. Bez otevření jednotlivých grafů.</p>
+          <p>5. Na webu vlož stejný klíč a klikni na Připojit. Pro nové svíčky musí běžet MT5 i hromadný konektor na tvém PC. Při přechodu na nový konektor ukonči ten starý, aby neběžely dva současně.</p>
         </details>
       </section>
       <section class="panel datasets-panel" aria-labelledby="sets-title">
         <div class="panel-heading"><h2 id="sets-title">Dostupné datasety</h2><span class="count-pill" id="set-count">0</span></div>
         <label class="field dataset-search-label" for="dataset-filter"><span>Hledat mezi akciemi</span><input id="dataset-filter" type="search" placeholder="Např. AAPL, MSFT, NVDA…" autocomplete="off"></label><div id="datasets-list" class="datasets-list" aria-live="polite"><div class="empty-small">Připoj se k API.</div></div>
-        <p class="datasets-note">Data přicházejí z MT5 do soukromého úložiště. Aplikace zobrazuje pouze symboly a historii dostupné u tvého brokera.</p>
+        <p class="datasets-note">Data přicházejí z MT5 do soukromého úložiště. Počty odpovídají datům dostupným u brokera; víkendy a svátky nevykazujeme jako chybějící svíčky.</p>
       </section>
     </aside>
     <div class="workarea">
       <section class="panel viewer-panel" aria-labelledby="dataset-heading">
         <div class="viewer-head"><div><div class="eyebrow subdued">AKTIVNÍ DATASET</div><h2 id="dataset-heading">Čeká na připojení</h2><p id="dataset-meta">Zadej přístupový klíč.</p></div><span class="source-tag" id="dataset-source">OFFLINE</span></div>
+        <div class="dataset-timeframe-row"><label for="source-timeframe">Originální interval z MT5</label><select id="source-timeframe" disabled><option>—</option></select><span id="available-frames">Dostupnost se zobrazí po připojení.</span></div>
         <div class="stat-grid">
           <div class="stat"><span>Počet svíček</span><strong id="stat-count">—</strong><small id="stat-timeframe">Bez dat</small></div>
           <div class="stat"><span>Poslední close</span><strong id="stat-close">—</strong><small id="stat-date">Bez dat</small></div>
           <div class="stat"><span>Maximum</span><strong id="stat-high">—</strong><small>High</small></div>
           <div class="stat"><span>Minimum</span><strong id="stat-low">—</strong><small>Low</small></div>
+        </div>
+        <div class="data-quality" aria-live="polite">
+          <div><span>Kontrola OHLC</span><strong id="quality-ohlc">—</strong></div>
+          <div><span>Duplicitní časy</span><strong id="quality-duplicates">—</strong></div>
+          <div><span>Poslední čas svíčky</span><strong id="quality-last">—</strong></div>
         </div>
         <div class="chart-panel">
           <div class="chart-title-row"><div><span class="eyebrow subdued">CANDLESTICK VIEW</span><h3>Historie cen</h3></div>
