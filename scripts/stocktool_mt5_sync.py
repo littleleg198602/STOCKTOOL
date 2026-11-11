@@ -60,6 +60,8 @@ PRIVATE_FOLDER = Path.home() / ".stocktool"
 SECRET_PATH = PRIVATE_FOLDER / "api_key.dpapi"
 STATE_PATH = PRIVATE_FOLDER / "mt5_bulk_state.json"
 TIMEFRAMES = ("M1", "M5", "M15", "M30", "H1", "H4", "D1", "W1")
+TIMEFRAME_SECONDS = {"M1": 60, "M5": 300, "M15": 900, "M30": 1800,
+                     "H1": 3600, "H4": 14400, "D1": 86400, "W1": 604800}
 # Metadata path naming is defined by the broker. This is intentionally conservative.
 STOCK_PATH = re.compile(r"stock|share|equit|equity|acciones|aktie|akcj", re.IGNORECASE)
 NAME = re.compile(r"^[A-Za-z0-9._:-]{1,30}$")
@@ -185,7 +187,10 @@ def arguments() -> argparse.Namespace:
                    help="stocks: akcie podle cesty brokera; marketwatch: viditelné symboly; file: vlastní TXT seznam")
     p.add_argument("--symbols-file", type=Path, default=None, help="TXT se symboly po řádcích (jen pro --universe file).")
     p.add_argument("--max-symbols", type=int, default=700, help="Maximum instrumentů. Výchozí: 700.")
-    p.add_argument("--timeframe", choices=TIMEFRAMES, default="D1")
+    p.add_argument("--timeframe", choices=TIMEFRAMES, default="D1",
+                   help="Zpetna kompatibilita: jeden interval, vychozi D1.")
+    p.add_argument("--timeframes", default="",
+                   help="Vice MT5 intervalu v jediném procesu, např. H1,H4,D1,W1.")
     p.add_argument("--initial-bars", type=int, default=300, help="Počet dokončených svíček při prvním importu (1..5000).")
     p.add_argument("--interval-minutes", type=float, default=15.0, help="Interval kontroly, pokud je --loop.")
     p.add_argument("--delay", type=float, default=0.3, help="Minimální prodleva mezi HTTPS požadavky v sekundách.")
@@ -306,92 +311,122 @@ def post_chunk(api_key: str, symbol: str, timeframe: str, bars: list[dict], dela
     raise ConnectionError(f"HTTPS spojení se StockTool API selhalo ({last_error}).")
 
 
-def sync_one(mt5, symbol: str, cfg: argparse.Namespace, key: str, state: dict) -> tuple[str, int]:
-    timeframe = getattr(mt5, "TIMEFRAME_" + cfg.timeframe)
-    state_id = symbol + "|" + cfg.timeframe
+def newest_closed_position(mt5, symbol: str, timeframe: int, name: str):
+    """Find newest completed candle, including MT5 position 0 after period end.
+
+    MT5 index 0 means the most recent candle. On weekends/market closures
+    bar 0 can already be completed; blindly skipping it loses that bar.
+    Conservative completion rule: candle open + nominal period <= UTC now.
+    """
+    most_recent = mt5.copy_rates_from_pos(symbol, timeframe, 0, 1)
+    if most_recent is None or len(most_recent) == 0:
+        return None
+    opened_at = int(most_recent[0]["time"])
+    position = 0 if opened_at + TIMEFRAME_SECONDS[name] <= time.time() - 5 else 1
+    recent_closed = mt5.copy_rates_from_pos(symbol, timeframe, position, 1)
+    if recent_closed is None or len(recent_closed) == 0:
+        return None
+    return position, int(recent_closed[0]["time"])
+
+
+def sync_one(mt5, symbol: str, timeframe_name: str,
+             cfg: argparse.Namespace, key: str, state: dict) -> tuple[str, int]:
+    timeframe = getattr(mt5, "TIMEFRAME_" + timeframe_name)
+    state_id = symbol + "|" + timeframe_name
     last_time = int(state.get(state_id, 0))
     info = mt5.symbol_info(symbol)
     was_selected = bool(info and getattr(info, "select", False))
     if not mt5.symbol_select(symbol, True):
         return ("symbol nedostupný v Market Watch", 0)
     try:
-        latest = mt5.copy_rates_from_pos(symbol, timeframe, 1, 1)
-        if latest is None or len(latest) == 0:
+        completion = newest_closed_position(mt5, symbol, timeframe, timeframe_name)
+        if completion is None:
             return ("bez dostupné historie", 0)
-        latest_closed = int(latest[0]["time"])
+        newest_pos, latest_closed = completion
         if last_time >= latest_closed:
             return ("beze změny", 0)
 
-        # The open candle time is the upper bound. On closed markets, there is
-        # no newer bar; use server time. copy_rates_range includes endpoints.
-        current = mt5.copy_rates_from_pos(symbol, timeframe, 0, 1)
-        upper = int(current[0]["time"]) if current is not None and len(current) else int(time.time())
-        if last_time > 0:
-            # Include the last successful candle; server deduplicates overlap.
+        if last_time:
+            # Range includes the last acknowledged candle; the server deduplicates.
             dt_from = datetime.fromtimestamp(last_time, tz=timezone.utc)
             dt_to = datetime.fromtimestamp(int(time.time()), tz=timezone.utc)
             rates = mt5.copy_rates_range(symbol, timeframe, dt_from, dt_to)
         else:
-            rates = mt5.copy_rates_from_pos(symbol, timeframe, 1, cfg.initial_bars)
+            rates = mt5.copy_rates_from_pos(
+                symbol, timeframe, newest_pos, cfg.initial_bars
+            )
         if rates is None or len(rates) == 0:
             return ("historie se nenačetla", 0)
-        bars = rates_to_bars(rates, upper)
+
+        # Do not send the currently forming candle; can include bar0 after close.
+        bars = rates_to_bars(rates, latest_closed + 1)
         if not bars:
             return ("bez nových uzavřených svíček", 0)
         total = 0
         for pos in range(0, len(bars), 150):
             chunk = bars[pos:pos + 150]
-            post_chunk(key, symbol, cfg.timeframe, chunk, cfg.delay)
-            # State is persisted AFTER each acknowledged chunk so a failure
-            # never silently skips untransferred candles.
+            post_chunk(key, symbol, timeframe_name, chunk, cfg.delay)
+            # Persist only AFTER a successfully acknowledged server response.
             state[state_id] = chunk[-1]["t"]
             save_state(state)
             total += len(chunk)
         return ("synchronizováno", total)
     finally:
-        # Do not leave 700 additional symbols in the user's Market Watch.
         if not was_selected:
             mt5.symbol_select(symbol, False)
 
 
-def run_cycle(mt5, cfg: argparse.Namespace, key: str, state: dict, symbols: list[str]) -> bool:
+def run_cycle(mt5, cfg: argparse.Namespace, key: str, state: dict,
+              symbols: list[str], timeframes: tuple[str, ...]) -> bool:
     stats = {"ok": 0, "unchanged": 0, "failed": 0, "bars": 0}
     fatal = False
     started = time.monotonic()
-    for i, symbol in enumerate(symbols, 1):
-        try:
-            status, count = sync_one(mt5, symbol, cfg, key, state)
-            if status == "synchronizováno":
-                stats["ok"] += 1
-                stats["bars"] += count
-            elif status == "beze změny":
-                stats["unchanged"] += 1
-            else:
+    total_tasks = len(symbols) * len(timeframes)
+    done = 0
+    for symbol in symbols:
+        for tf_name in timeframes:
+            done += 1
+            try:
+                status, count = sync_one(mt5, symbol, tf_name, cfg, key, state)
+                if status == "synchronizováno":
+                    stats["ok"] += 1
+                    stats["bars"] += count
+                elif status == "beze změny":
+                    stats["unchanged"] += 1
+                else:
+                    stats["failed"] += 1
+                    log(f"[{done}/{total_tasks}] {symbol} {tf_name}: {status}")
+            except ConnectionError as error:
                 stats["failed"] += 1
-                log(f"[{i}/{len(symbols)}] {symbol}: {status}")
-        except ConnectionError as error:
-            stats["failed"] += 1
-            log(f"[{i}/{len(symbols)}] {symbol}: CHYBA {error}")
-            log("Zastavuji cyklus: problém se serverem/HTTPS. Nepokouším se poslat dalších 700 tickerů.")
-            fatal = True
+                log(f"[{done}/{total_tasks}] {symbol} {tf_name}: CHYBA {error}")
+                log("Zastavuji cyklus kvůli problému se serverem/HTTPS.")
+                fatal = True
+                break
+            except Exception as error:
+                stats["failed"] += 1
+                log(f"[{done}/{total_tasks}] {symbol} {tf_name}: CHYBA {error}")
+            if done % 50 == 0 or done == total_tasks:
+                log(f"Průběh {done}/{total_tasks} | přenosy {stats['ok']} | "
+                    f"beze změny {stats['unchanged']} | problémy {stats['failed']} | "
+                    f"odesláno svíček {stats['bars']:,}")
+        if fatal:
             break
-        except Exception as error:
-            stats["failed"] += 1
-            log(f"[{i}/{len(symbols)}] {symbol}: CHYBA {error}")
-        if i % 25 == 0 or i == len(symbols):
-            log(f"Průběh {i}/{len(symbols)} | nové {stats['ok']} | "
-                f"beze změny {stats['unchanged']} | problémy {stats['failed']} | "
-                f"odesláno svíček {stats['bars']:,}")
-    log(f"Cyklus dokončen: {len(symbols)} instrumentů, {stats['bars']:,} svíček, "
-        f"{stats['failed']} problémů. Doba {round(time.monotonic()-started)} s.")
-    if fatal or (stats["ok"] == 0 and stats["unchanged"] == 0):
-        log("TEST NEPROSEL: zatím nebyla ověřena synchronizace žádného symbolu.")
+    log(f"Cyklus dokončen: {done}/{total_tasks} symbolů/intervalů, "
+        f"{stats['bars']:,} svíček, {stats['failed']} problémů. "
+        f"Doba {round(time.monotonic() - started)} s.")
+    if fatal or stats["ok"] + stats["unchanged"] == 0:
+        log("CYKLUS NEPROSEL: synchronizace není úspěšně potvrzena.")
         return False
     return True
 
 
 def main() -> int:
     cfg = arguments()
+    chosen = cfg.timeframes or cfg.timeframe
+    timeframes = tuple(dict.fromkeys(x.strip().upper() for x in chosen.split(",") if x.strip()))
+    if not timeframes or any(tf not in TIMEFRAMES for tf in timeframes):
+        print("CHYBA: neplatný interval. Povoleno např. --timeframes H1,H4,D1,W1.", file=sys.stderr)
+        return 2
     if not 1 <= cfg.max_symbols <= 20000 or not 1 <= cfg.initial_bars <= 5000:
         print("Chyba: --max-symbols 1..20000, --initial-bars 1..5000.", file=sys.stderr)
         return 2
@@ -428,11 +463,12 @@ def main() -> int:
             log("PŘEHLED SYMBOLŮ (bez stahování a odesílání dat):")
             for symbol in symbols: print(symbol)
             return 0
+        log("Casove ramce: " + ", ".join(timeframes))
         key = get_api_key(cfg.reset_key)
         preflight(key)
         state = load_state()
         while True:
-            if not run_cycle(mt5, cfg, key, state, symbols):
+            if not run_cycle(mt5, cfg, key, state, symbols, timeframes):
                 return 7
             if not cfg.loop:
                 return 0
