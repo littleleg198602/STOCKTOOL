@@ -39,3 +39,49 @@ button,input,select{font:inherit}button{cursor:pointer}button:disabled{opacity:.
 .dataset-search-label input{width:100%;height:39px;border:1px solid #345066;border-radius:8px;padding:0 10px;background:#0c1929;color:#e9f7f5;font-size:13px}
 .datasets-list{max-height:470px;overflow-y:auto;overscroll-behavior:contain;scrollbar-color:#376072 #112236}
 .datasets-list .dataset-item{flex-shrink:0}
+
+
+/* Data Manager v0.3: universe coverage, grouped tickers and MT5 timeframe quality */
+.coverage-bar{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;
+  margin:-5px 0 23px
+}
+.coverage-stat{
+  min-width:0;border:1px solid #28495b;border-radius:12px;
+  background:linear-gradient(145deg,#12283a,#102234);
+  padding:14px 17px
+}
+.coverage-stat span,.data-quality span{display:block;font-size:10px;font-weight:650;color:#85a3b5;letter-spacing:.25px}
+.coverage-stat strong{display:block;font-size:23px;font-weight:780;letter-spacing:-.7px;margin-top:3px;line-height:1.35}
+.coverage-update strong{font-size:13px;letter-spacing:0;margin-top:8px;overflow-wrap:anywhere}
+.dataset-item .dataset-frames{
+  font-size:10px!important;line-height:1.5;color:#a7d8ce!important;white-space:normal!important;
+  text-align:right;max-width:100px;border-color:#30594d!important;background:#17372f
+}
+.dataset-timeframe-row{
+  border:1px solid #2b4b5b;border-radius:9px;padding:10px 13px;
+  margin:-6px 0 17px;display:flex;align-items:center;gap:13px;flex-wrap:wrap;
+  background:#122839
+}
+.dataset-timeframe-row label{color:#aac4cf;font-size:11px;font-weight:700}
+.dataset-timeframe-row select{color:#b1ffe3;background:#0d2730;border:1px solid #39756a;border-radius:7px;padding:6px 12px;font-weight:750}
+.dataset-timeframe-row>span{font-size:10px;color:#86a8b7}
+.data-quality{
+  display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:10px;margin:-3px 0 19px
+}
+.data-quality>div{
+  background:#0f2530;border:1px solid #2c4b50;border-radius:9px;padding:10px 13px;min-width:0
+}
+.data-quality strong{
+  display:block;font-weight:750;font-size:12px;color:#b6ecda;margin-top:4px;overflow-wrap:anywhere
+}
+@media(max-width:950px){.coverage-bar{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){
+ .coverage-bar{gap:8px;margin-bottom:17px}
+ .coverage-stat{padding:12px}
+ .coverage-stat strong{font-size:19px}
+ .coverage-update strong{font-size:11px}
+ .data-quality{grid-template-columns:1fr 1fr}
+ .data-quality>div:last-child{grid-column:1/-1}
+ .dataset-timeframe-row{gap:8px}
+}
