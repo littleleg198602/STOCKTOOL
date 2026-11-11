@@ -62,53 +62,81 @@
     $("connection-label").textContent = active ? "Připojeno k webovému API" : "Zatím nepřipojeno";
   }
 
+  function updateCoverage() {
+    const symbols = new Set(catalog.map(item => item.symbol));
+    const count = catalog.reduce((sum, item) => sum + Number(item.count || 0), 0);
+    const lastUpdate = catalog.reduce((maximum, item) =>
+      Math.max(maximum, Number(item.updated_at || 0)), 0);
+    $("summary-symbols").textContent = num(symbols.size);
+    $("summary-datasets").textContent = num(catalog.length);
+    $("summary-bars").textContent = num(count);
+    $("summary-updated").textContent = lastUpdate ? stamp(lastUpdate * 1000) : "—";
+  }
+
   function renderCatalog() {
     const list = $("datasets-list");
     list.replaceChildren();
-    $("set-count").textContent = String(catalog.length);
-    if (!catalog.length) {
+    const groups = new Map();
+    for (const item of catalog) {
+      const entries = groups.get(item.symbol) || [];
+      entries.push(item);
+      groups.set(item.symbol, entries);
+    }
+    $("set-count").textContent = String(groups.size);
+    updateCoverage();
+    if (!groups.size) {
       const empty = document.createElement("div");
       empty.className = "empty-small";
       empty.textContent = apiKey ? "MT5 zatím neposlal žádné svíčky." : "Připoj se k API.";
       list.append(empty);
       return;
     }
+
     const term = $("dataset-filter").value.trim().toLocaleUpperCase("cs-CZ");
-    const visible = catalog.filter(item => (item.symbol + " " + item.timeframe).toLocaleUpperCase("cs-CZ").includes(term));
-    if (!visible.length) {
+    const available = [...groups].filter(([symbol, entries]) =>
+      (symbol + " " + entries.map(row => row.timeframe).join(" ")).toLocaleUpperCase("cs-CZ").includes(term));
+    if (!available.length) {
       const empty = document.createElement("div");
       empty.className = "empty-small";
       empty.textContent = "Žádný ticker neodpovídá hledání.";
       list.append(empty);
     }
-    // Limit expensive DOM creation when there are thousands of available symbols.
-    visible.slice(0, 120).forEach(item => {
-      const id = item.symbol + "|" + item.timeframe;
+
+    available.slice(0, 120).forEach(([symbol, entries]) => {
+      const selectedSymbol = selected.split("|")[0];
       const button = document.createElement("button");
+      button.className = "dataset-item" + (selectedSymbol === symbol ? " is-active" : "");
       button.type = "button";
-      button.className = "dataset-item" + (selected === id ? " is-active" : "");
-      button.setAttribute("aria-pressed", String(selected === id));
-      const text = document.createElement("span");
-      const strong = document.createElement("strong");
-      strong.textContent = item.symbol;
-      const small = document.createElement("small");
-      small.textContent = num(item.count) + " svíček · aktualizováno " + stamp(item.updated_at * 1000);
-      const tf = document.createElement("span");
-      tf.textContent = item.timeframe;
-      text.append(strong, small);
-      button.append(text, tf);
+      button.setAttribute("aria-pressed", String(selectedSymbol === symbol));
+      const box = document.createElement("span");
+      const name = document.createElement("strong");
+      name.textContent = symbol;
+      const info = document.createElement("small");
+      const sum = entries.reduce((total, row) => total + Number(row.count || 0), 0);
+      info.textContent = num(sum) + " svíček · " + entries.length + " intervalů";
+      const frames = document.createElement("span");
+      frames.className = "dataset-frames";
+      frames.textContent = entries.map(e => e.timeframe)
+        .sort((a, b) => PERIODS[a] - PERIODS[b]).join(" · ");
+      box.append(name, info);
+      button.append(box, frames);
       button.addEventListener("click", () => {
-        selected = id;
+        const currentTF = selected.split("|")[1];
+        const chosen = entries.find(e => e.timeframe === currentTF)
+          || entries.find(e => e.timeframe === "D1") || entries[0];
+        selected = symbol + "|" + chosen.timeframe;
         page = 0;
         renderCatalog();
         loadSelected().catch(error => flash(error.message, true));
       });
       list.append(button);
     });
-    if (visible.length > 120) {
+
+    if (available.length > 120) {
       const note = document.createElement("div");
       note.className = "empty-small";
-      note.textContent = "Zobrazeno prvních 120 z " + num(visible.length) + " výsledků. Pro další ticker použij hledání.";
+      note.textContent = "Zobrazeno prvních 120 z " + num(available.length) +
+        " akcií. Pro další ticker použij hledání.";
       list.append(note);
     }
   }
@@ -181,18 +209,37 @@
       "&timeframe=" + encodeURIComponent(timeframe) + "&limit=5000");
     if (id !== selected) return;
     rawBars = (response.bars || []).map(bar => ({
-      t:Number(bar.t) * 1000, o:Number(bar.o), h:Number(bar.h),
-      l:Number(bar.l), c:Number(bar.c), v:Number(bar.v)
-    })).filter(bar => Number.isFinite(bar.t) && Number.isFinite(bar.o) &&
-      Number.isFinite(bar.h) && Number.isFinite(bar.l) && Number.isFinite(bar.c))
-      .sort((a,b) => a.t - b.t);
+      t: Number(bar.t) * 1000, o: Number(bar.o), h: Number(bar.h),
+      l: Number(bar.l), c: Number(bar.c), v: Number(bar.v)
+    })).filter(bar => Number.isFinite(bar.t) && Number.isFinite(bar.o)
+      && Number.isFinite(bar.h) && Number.isFinite(bar.l) && Number.isFinite(bar.c))
+      .sort((a, b) => a.t - b.t);
+
+    // Genuine MT5 timeframe selector. Other intervals are not just
+    // resampled from the currently displayed source.
+    const available = catalog.filter(row => row.symbol === symbol)
+      .sort((a, b) => PERIODS[a.timeframe] - PERIODS[b.timeframe]);
+    const sourceSelector = $("source-timeframe");
+    sourceSelector.replaceChildren();
+    available.forEach(entry => {
+      const option = document.createElement("option");
+      option.value = entry.timeframe;
+      option.textContent = entry.timeframe;
+      sourceSelector.append(option);
+    });
+    sourceSelector.value = timeframe;
+    sourceSelector.disabled = available.length < 2;
+    $("available-frames").textContent = "Originální MT5 data: " +
+      available.map(entry => entry.timeframe).join(", ");
+
     const activeTF = $("view-timeframe").value;
     const allowed = Object.keys(PERIODS).filter(tf => PERIODS[tf] >= PERIODS[timeframe]);
     const selector = $("view-timeframe");
     selector.replaceChildren();
     for (const tf of allowed) {
       const option = document.createElement("option");
-      option.value = tf; option.textContent = tf;
+      option.value = tf;
+      option.textContent = tf;
       selector.append(option);
     }
     selector.value = allowed.includes(activeTF) ? activeTF : timeframe;
@@ -209,7 +256,11 @@
     $("dataset-heading").textContent = title;
     $("dataset-meta").textContent = description;
     $("dataset-source").textContent = apiKey ? "ČEKÁ NA MT5" : "OFFLINE";
-    ["stat-count","stat-close","stat-high","stat-low"].forEach(id => $(id).textContent = "—");
+    ["stat-count","stat-close","stat-high","stat-low",
+      "quality-ohlc","quality-duplicates","quality-last"].forEach(id => $(id).textContent = "—");
+    $("source-timeframe").disabled = true;
+    $("source-timeframe").replaceChildren();
+    $("available-frames").textContent = "Dostupnost se zobrazí po připojení.";
     $("stat-date").textContent = "Bez dat";
     $("stat-timeframe").textContent = "Bez dat";
     $("view-timeframe").disabled = true;
@@ -260,6 +311,17 @@
     for (const b of rawBars) { high=Math.max(high,b.h); low=Math.min(low,b.l); }
     $("stat-high").textContent = money(high);
     $("stat-low").textContent = money(low);
+    let invalid = 0, duplicates = 0;
+    for (let i = 0; i < rawBars.length; i++) {
+      const b = rawBars[i];
+      if (b.h < Math.max(b.o, b.c, b.l) ||
+          b.l > Math.min(b.o, b.c, b.h) ||
+          !Number.isFinite(b.v) || b.v < 0) invalid++;
+      if (i && b.t === rawBars[i - 1].t) duplicates++;
+    }
+    $("quality-ohlc").textContent = invalid === 0 ? "OK · " + num(rawBars.length) : num(invalid) + " neplatných";
+    $("quality-duplicates").textContent = num(duplicates);
+    $("quality-last").textContent = stamp(last.t);
     $("chart-empty").hidden = false;
     $("chart-caption").textContent = num(aggregated.length) + " svíček · " + timeframe + " · čas MT5 (UTC formát)";
     $("table-meta").textContent = "Nejnovější první · " + timeframe;
@@ -340,6 +402,15 @@
   async function initialize() {
     $("year").textContent=String(new Date().getFullYear());
     $("dataset-filter").addEventListener("input",renderCatalog);
+    $("source-timeframe").addEventListener("change", () => {
+      const symbol = selected.split("|")[0];
+      const timeframe = $("source-timeframe").value;
+      if (!symbol || !timeframe) return;
+      selected = symbol + "|" + timeframe;
+      page = 0;
+      renderCatalog();
+      loadSelected().catch(error => flash(error.message, true));
+    });
     $("connect-button").addEventListener("click",connect);
     $("access-key").addEventListener("keydown",event=>{if(event.key==="Enter")connect();});
     $("show-key").addEventListener("change",e=>{
