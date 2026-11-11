@@ -8,6 +8,13 @@ echo STOCKTOOL - SPOJENI FORPSI A TEST 10 AKCII
 echo ==================================================
 echo.
 echo Nejprve overim spojeni s API (bez odesilani svicek).
+echo Kontroluji bezpecne overovani HTTPS certifikatu Windows...
+py -3 -c "import truststore" >nul 2>&1
+if errorlevel 1 (
+  echo Instaluji knihovnu truststore pro systemove certifikaty...
+  py -3 -m pip install --disable-pip-version-check truststore
+  if errorlevel 1 goto failed
+)
 py -3 "%~dp0stocktool_mt5_sync.py" --check-api
 if errorlevel 1 goto failed
 echo.
