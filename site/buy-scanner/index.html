@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#09131e">
+  <meta name="description" content="StockTool BUY Scanner – transparentní technický výběr akcií z reálných MT5 dat.">
+  <title>BUY Scanner | StockTool</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <link rel="stylesheet" href="./styles.css">
+  <script defer src="./app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#scanner">Přejít na BUY Scanner</a>
+  <header class="header">
+    <div class="wrap header-inner">
+      <a class="brand" href="../" aria-label="StockTool – hlavní stránka">
+        <span class="brand-icon" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none"><path d="m5 22 8-8 6 4 9-11m-7 0h7v7" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/></svg>
+        </span>
+        <span>STOCK<span>TOOL</span><small>.EU</small></span>
+      </a>
+      <div class="header-right"><span class="section-breadcrumb">/ BUY SCANNER</span><span class="beta-badge">BETA V0.1</span><a class="back" href="../">← Platforma</a></div>
+    </div>
+  </header>
+  <main class="wrap" id="scanner">
+    <div class="hero">
+      <div class="hero-text">
+        <div class="eyebrow"><i class="live-dot"></i> STOCKTOOL / EQUITY RESEARCH</div>
+        <h1>BUY <span>Scanner.</span></h1>
+        <p>Najdi zajímavé technické nákupní situace mezi akciemi z Darwinex MT5. Každý výsledek má jasná pravidla, indikátory a datum poslední svíčky.</p>
+      </div>
+      <div class="data-source"><span>DATOVÝ ZDROJ</span><strong>MT5 · D1</strong><small>Reálná brokerova OHLCV historie</small></div>
+    </div>
+    <section class="notice" aria-label="Upozornění na analytický rozsah">
+      <span class="notice-icon">i</span>
+      <p><strong>Technický screening, nikoliv automatické nákupní doporučení.</strong> Signály vycházejí pouze z OHLC a tick volume dodaných MT5. Neobsahují fundamenty, oceňování, tok objednávek ani důkaz nucených výprodejů. Na těchto vrstvách budeme pracovat odděleně.</p>
+    </section>
+    <section class="connect-panel panel" aria-label="Přihlášení a spuštění skeneru">
+      <div class="connect-info">
+        <div class="micro-title">PŘIPOJENÍ KE STOCKTOOL</div>
+        <h2>Spustit hromadnou analýzu</h2>
+        <p>Využijeme data, která už Data Manager ukládá na FORPSI. Načítání je po menších dávkách, aby se nezatěžoval hosting.</p>
+      </div>
+      <div class="connect-actions">
+        <label for="api-key">Soukromý API klíč</label>
+        <div class="password-row"><input type="password" id="api-key" placeholder="Vlož stávající StockTool klíč" autocomplete="off"><button id="show-key" type="button" aria-label="Ukázat nebo skrýt klíč">◉</button></div>
+        <div class="action-row"><button class="btn btn-primary" id="scan-button" type="button">Spustit BUY Scanner <span>↗</span></button><button class="btn btn-outline" id="rescan-button" type="button" disabled>↻ Obnovit data</button></div>
+        <div class="connection-state" id="connection-state" role="status">Připojení zatím nebylo ověřeno. Klíč neukládáme do prohlížeče.</div>
+      </div>
+    </section>
+    <section class="stats" aria-label="Přehled screeningu">
+      <div class="stat-card primary-stat"><span>Technické BUY kandidáty</span><strong id="stat-buy">—</strong><small>Breakout + Pullback + Trend</small></div>
+      <div class="stat-card"><span>Prozkoumané akcie</span><strong id="stat-scanned">—</strong><small id="stat-scanned-note">Čeká na sken</small></div>
+      <div class="stat-card"><span>Další sledování</span><strong id="stat-watch">—</strong><small>Watch / bez jasného vstupu</small></div>
+      <div class="stat-card"><span>Zastaralá / nedostatečná</span><strong id="stat-limited">—</strong><small>Vyřazena z BUY výběru</small></div>
+    </section>
+    <div class="progress-row" aria-live="polite"><span id="progress-label">Načtení ještě nezačalo.</span><div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div><span id="progress-number">0 %</span></div>
+    <section class="workspace">
+      <div class="results-panel panel">
+        <div class="results-head">
+          <div><div class="micro-title">BUY / D1 SCREENER</div><h2>Výsledky analýzy <span id="filtered-count"></span></h2></div>
+          <div class="toolbar-buttons">
+            <button class="btn btn-outline" id="copy-tickers" type="button" disabled>Kopírovat tickery</button>
+            <button class="btn btn-outline" id="export-txt" type="button" disabled>↓ TXT výstup</button>
+          </div>
+        </div>
+        <div class="controls">
+          <div class="filter-chip-row" role="group" aria-label="Kategorie technické formace">
+            <button type="button" class="chip active" data-filter="buy" aria-pressed="true">BUY kandidáti</button>
+            <button type="button" class="chip" data-filter="all" aria-pressed="false">Všechny</button>
+            <button type="button" class="chip" data-filter="BREAKOUT" aria-pressed="false">Breakout</button>
+            <button type="button" class="chip" data-filter="PULLBACK" aria-pressed="false">Pullback</button>
+            <button type="button" class="chip" data-filter="TREND" aria-pressed="false">Trend</button>
+            <button type="button" class="chip" data-filter="WATCH" aria-pressed="false">Watch</button>
+          </div>
+          <div class="more-controls">
+            <label class="search-field"><span class="sr-only">Hledat ticker</span><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.8"/><path d="m13.5 13.5 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><input type="search" id="ticker-search" placeholder="Hledat ticker…" autocomplete="off"></label>
+            <label class="control-label">Řazení <select id="sort-mode"><option value="priority">Typ formace</option><option value="momentum">20denní změna ↓</option><option value="rsi">RSI ↑</option><option value="ticker">Ticker A–Z</option></select></label>
+            <label class="check-filter"><input type="checkbox" id="top-ten" checked> Top 10</label>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Akcie</th><th>Formace</th><th>Close</th><th>RSI(14)</th><th>20 D změna</th><th>SMA200</th><th>Tick vol.</th><th>Poslední svíčka</th></tr></thead>
+            <tbody id="results-body"><tr><td colspan="8" class="empty-cell">Pro analýzu nejdřív zadej API klíč a spusť sken.</td></tr></tbody>
+          </table>
+        </div>
+        <div class="table-foot"><span id="table-note">Výsledky jsou indikativní a závisí na kvalitě dat brokera.</span><div class="pager"><button id="prev-page" type="button" aria-label="Předchozí stránka" disabled>←</button><span id="page-caption">—</span><button id="next-page" type="button" aria-label="Další stránka" disabled>→</button></div></div>
+      </div>
+      <aside class="detail-panel panel">
+        <div class="detail-head"><div class="micro-title">DETAIL / VÝPOČET</div><h2 id="detail-symbol">Vyber akcii</h2><p id="detail-subtitle">Po skenu klikni na některý ticker v tabulce.</p></div>
+        <span class="setup-pill neutral" id="detail-setup">Zatím žádná analýza</span>
+        <div class="detail-chart"><canvas id="detail-chart" role="img" aria-label="Poslední denní zavírací ceny vybrané akcie"></canvas><div id="chart-empty" class="detail-chart-empty">Graf se načte po výběru akcie.</div></div>
+        <div class="detail-metrics">
+          <div><span>SMA50</span><strong id="detail-sma50">—</strong></div>
+          <div><span>SMA200</span><strong id="detail-sma200">—</strong></div>
+          <div><span>RSI14</span><strong id="detail-rsi">—</strong></div>
+          <div><span>ATR14 %</span><strong id="detail-atr">—</strong></div>
+          <div><span>Od 52t high</span><strong id="detail-high">—</strong></div>
+          <div><span>20 D změna</span><strong id="detail-momentum">—</strong></div>
+        </div>
+        <h3>Proč vyšla tato formace?</h3>
+        <ul id="detail-reasons" class="reason-list"><li>Po výběru titulu zobrazíme přesné důvody z výpočtu.</li></ul>
+        <div class="detail-footer" id="detail-footer">Zdroj: MT5 / D1 · Bez fundamentálního hodnocení</div>
+        <a class="data-manager-link" href="../data-manager/">Otevřít Data Manager ↗</a>
+      </aside>
+    </section>
+    <section class="rules panel" aria-labelledby="rules-heading">
+      <div><div class="micro-title">AUDITOVATELNÁ PRAVIDLA / V0.1</div><h2 id="rules-heading">Co přesně hledáme?</h2><p>Zatím neexistuje žádné neveřejné „AI skóre“. Každá formace má čitelné podmínky a používá pouze dokončené denní svíčky.</p></div>
+      <div class="rules-grid">
+        <div><span class="rule-dot breakout"></span><strong>Breakout</strong><p>Růstový trend, překonání maxima předchozích 20 svíček, RSI 45–76.</p></div>
+        <div><span class="rule-dot pullback"></span><strong>Pullback</strong><p>Růstový trend, cena -3 až +2,5 % od SMA50, RSI 40–65.</p></div>
+        <div><span class="rule-dot trend"></span><strong>Trend</strong><p>Cena nad SMA200, rostoucí SMA50 nad SMA200, RSI 48–70.</p></div>
+        <div><span class="rule-dot watch"></span><strong>Kontrola kvality</strong><p>Nejméně 210 D1 svíček. Data starší 10 dní nejsou BUY kandidáti.</p></div>
+      </div>
+    </section>
+  </main>
+  <footer class="wrap footer"><span>© <span id="year">2026</span> StockTool.eu · BUY Scanner BETA</span><span>Výzkumný nástroj · Žádné investiční doporučení</span></footer>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
