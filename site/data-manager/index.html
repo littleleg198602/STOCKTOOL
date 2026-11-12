@@ -34,12 +34,14 @@
   <div class="app-layout">
     <aside class="sidebar">
       <section class="panel import-panel" aria-labelledby="connection-title">
-        <div class="panel-heading"><h2 id="connection-title">Připojení k datům</h2><span class="panel-index">01</span></div>
-        <p class="panel-helper">Vlož soukromý přístupový klíč vytvořený při nastavení StockTool API. Klíč se neukládá do prohlížeče.</p>
+        <div class="panel-heading"><h2 id="connection-title">Přihlášení StockTool</h2><span class="panel-index">01</span></div>
+        <p class="panel-helper">Stačí se přihlásit jednou. Data Manager a BUY Scanner potom sdílejí zabezpečenou relaci až 30 dní od posledního použití. Samotný klíč se v prohlížeči neukládá.</p>
+        <div id="login-controls">
         <label class="field" for="access-key"><span>StockTool API klíč</span><input type="password" id="access-key" placeholder="Vlož svůj klíč…" autocomplete="off"></label>
         <label class="show-key"><input type="checkbox" id="show-key"> Zobrazit klíč</label>
-        <button id="connect-button" class="btn btn-primary btn-block" type="button">Připojit <span>↗</span></button>
-        <button id="disconnect-button" class="btn btn-outline btn-block" type="button" disabled>Odpojit</button>
+        <button id="connect-button" class="btn btn-primary btn-block" type="button">Přihlásit a zapamatovat <span>↗</span></button>
+        </div>
+        <button id="disconnect-button" class="btn btn-outline btn-block" type="button" disabled>Odhlásit z tohoto prohlížeče</button>
         <p class="micro-copy" id="api-status">Ověření webového API ještě neproběhlo.</p>
         <details class="export-help">
           <summary>Jak propojit MetaTrader 5?</summary>
@@ -47,7 +49,7 @@
           <p>2. Na počítači s běžícím MT5 spusť <a href="https://github.com/littleleg198602/STOCKTOOL/blob/main/scripts/StockTool-MT5-MULTI-TF.bat" target="_blank" rel="noopener noreferrer">StockTool-MT5-MULTI-TF.bat</a>. Jeden Python konektor postupně načítá všechny akcie a časové rámce.</p>
           <p>3. Poprvé zadáš přístupový klíč; Windows ho uloží šifrovaně pouze pro tvůj účet. V MetaTraderu 5 nic neinstaluješ.</p>
           <p>4. Konektor najde akcie u brokera a synchronizuje samostatná originální MT5 data H1, H4, D1 a W1. Bez otevření jednotlivých grafů.</p>
-          <p>5. Na webu vlož stejný klíč a klikni na Připojit. Pro nové svíčky musí běžet MT5 i hromadný konektor na tvém PC. Při přechodu na nový konektor ukonči ten starý, aby neběžely dva současně.</p>
+          <p>5. Na webu vlož klíč pouze při prvním přihlášení. Data Manager i BUY Scanner si pak přihlášení pamatují pomocí zabezpečené relace. Pro nové svíčky musí běžet MT5 i hromadný konektor na tvém PC.</p>
         </details>
       </section>
       <section class="panel datasets-panel" aria-labelledby="sets-title">
