@@ -91,7 +91,7 @@
     if (!groups.size) {
       const empty = document.createElement("div");
       empty.className = "empty-small";
-      empty.textContent = apiKey ? "MT5 zatím neposlal žádné svíčky." : "Připoj se k API.";
+      empty.textContent = signedIn ? "MT5 zatím neposlal žádné svíčky." : "Přihlas se do StockToolu.";
       list.append(empty);
       return;
     }
@@ -283,7 +283,7 @@
   function setEmpty(title, description) {
     $("dataset-heading").textContent = title;
     $("dataset-meta").textContent = description;
-    $("dataset-source").textContent = apiKey ? "ČEKÁ NA MT5" : "OFFLINE";
+    $("dataset-source").textContent = signedIn ? "ČEKÁ NA MT5" : "OFFLINE";
     ["stat-count","stat-close","stat-high","stat-low",
       "quality-ohlc","quality-duplicates","quality-last"].forEach(id => $(id).textContent = "—");
     $("source-timeframe").disabled = true;
