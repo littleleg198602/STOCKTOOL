@@ -7,8 +7,8 @@
   <meta name="description" content="StockTool BUY Scanner – transparentní technický výběr akcií z reálných MT5 dat.">
   <title>BUY Scanner | StockTool</title>
   <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
-  <link rel="stylesheet" href="./styles.css">
-  <script defer src="./app.js"></script>
+  <link rel="stylesheet" href="./styles.css?v=auth1">
+  <script defer src="./app.js?v=auth1"></script>
 </head>
 <body>
   <a class="skip-link" href="#scanner">Přejít na BUY Scanner</a>
@@ -43,7 +43,7 @@
         <p>Využijeme data, která už Data Manager ukládá na FORPSI. Společné přihlášení si prohlížeč bezpečně zapamatuje až 30 dní od posledního použití.</p>
       </div>
       <div class="connect-actions">
-        <div id="login-controls"><label for="api-key">API klíč – pouze první přihlášení</label>
+        <div id="login-controls" hidden><label for="api-key">API klíč – pouze první přihlášení</label>
         <div class="password-row"><input type="password" id="api-key" placeholder="Vlož stávající StockTool klíč" autocomplete="off"><button id="show-key" type="button" aria-label="Ukázat nebo skrýt klíč">◉</button></div></div>
         <div class="action-row"><button class="btn btn-primary" id="scan-button" type="button">Přihlásit a spustit <span>↗</span></button><button class="btn btn-outline" id="rescan-button" type="button" disabled>↻ Obnovit data</button><button class="btn btn-outline" id="logout-button" type="button" disabled>Odhlásit</button></div>
         <div class="connection-state" id="connection-state" role="status">Přihlášení platí pro Data Manager i BUY Scanner. Klíč zadáš jen jednou na tomto zařízení.</div>
