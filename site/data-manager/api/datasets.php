@@ -5,7 +5,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'GET') {
     header('Allow: GET');
     respond(405, ['ok'=>false, 'error'=>'get_required']);
 }
-$cfg = setup();
+$cfg = setup(true); // accepts secure browser session or original API key
 $datasets = [];
 
 // Files are much smaller than OHLCV datasets and can be listed frequently.
