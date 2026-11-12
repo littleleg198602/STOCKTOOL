@@ -8,7 +8,7 @@
   const DAY = 86400000;
   const FMT = new Intl.NumberFormat("cs-CZ");
   const PAGE_SIZE = 20;
-  let apiKey = "";
+  let signedIn = false;
   let catalog = [];
   let selected = "";
   let rawBars = [];
@@ -36,9 +36,10 @@
   };
   const stamp = t => t ? new Date(t).toISOString().slice(0, 16).replace("T", " ") + " UTC" : "—";
 
-  async function getJson(uri, authorized = true) {
-    const headers = authorized ? { "X-StockTool-Key": apiKey } : {};
-    const result = await fetch(API + uri, { headers, cache:"no-store" });
+  async function getJson(uri) {
+    const result = await fetch(API + uri, {
+      headers: {"Accept":"application/json"}, cache:"no-store", credentials:"same-origin"
+    });
     let data;
     try { data = await result.json(); } catch {
       throw new Error("API nevrátilo JSON. Ověř podporu PHP na FORPSI.");
@@ -57,10 +58,12 @@
   }
 
   function connectedState(active) {
+    signedIn = active;
+    $("login-controls").hidden = active;
     $("connect-button").disabled = active;
     $("disconnect-button").disabled = !active;
     $("refresh-button").disabled = !active;
-    $("connection-label").textContent = active ? "Připojeno k webovému API" : "Zatím nepřipojeno";
+    $("connection-label").textContent = active ? "Přihlášeno · zapamatované zařízení" : "Zatím nepřihlášeno";
   }
 
   function updateCoverage() {
@@ -143,40 +146,57 @@
   }
 
   async function connect() {
-    if (location.protocol !== "https:") return flash("Připojení vyžaduje HTTPS. Otevři zabezpečenou adresu stocktool.eu.", true);
+    if (location.protocol !== "https:") {
+      return flash("Připojení vyžaduje zabezpečené HTTPS.", true);
+    }
     const key = $("access-key").value.trim();
-    if (key.length < 32) return flash("Zadej svůj API klíč dlouhý alespoň 32 znaků.", true);
-    apiKey = key;
+    if (key.length < 32) return flash("Při prvním přihlášení vlož existující API klíč.", true);
+    $("connect-button").disabled = true;
     try {
-      $("connect-button").disabled = true;
-      await refreshAll(true);
+      const response = await fetch(API + "login.php", {
+        method: "POST", credentials: "same-origin", cache:"no-store",
+        headers: { "X-StockTool-Key":key, "Accept":"application/json" }
+      });
+      const body = await response.json();
+      if (!response.ok || !body.ok || !body.authenticated) {
+        throw new Error(response.status === 401 ? "Nesprávný API klíč." : "Přihlášení selhalo (HTTP "+response.status+").");
+      }
       $("access-key").value = "";
       connectedState(true);
-      flash("Připojeno ke StockTool API. Synchronizované datasety jsou načtené.");
+      await refreshAll(true);
+      flash("Přihlášeno. Data Manager a BUY Scanner si přístup zapamatují.");
     } catch (error) {
-      apiKey = "";
-      connectedState(false);
-      flash(error.message, true);
+      flash("Přihlášení: " + error.message, true);
+      if (!signedIn) connectedState(false);
+    } finally {
+      $("access-key").value = "";
+      $("connect-button").disabled = signedIn;
     }
   }
 
-  function disconnect() {
-    apiKey = "";
-    catalog = [];
-    selected = "";
-    rawBars = [];
-    aggregated = [];
-    chartBars = [];
-    previousSourceTimeframe = "";
-    page = 0;
-    connectedState(false);
-    renderCatalog();
-    setEmpty("Čeká na připojení", "Zadej přístupový klíč.");
-    flash("Odpojeno. Přístupový klíč není uložen.");
+  async function disconnect() {
+    try {
+      const response = await fetch(API + "logout.php", {
+        method:"POST",credentials:"same-origin",cache:"no-store"
+      });
+      if (!response.ok) throw new Error("Odhlášení na serveru selhalo.");
+      catalog = [];
+      selected = "";
+      rawBars = []; aggregated = []; chartBars = [];
+      previousSourceTimeframe = "";
+      page = 0;
+      connectedState(false);
+      renderCatalog();
+      setEmpty("Čeká na přihlášení", "Přihlásit se stačí jednou na tomto zařízení.");
+      $("api-status").textContent = "Odhlášeno ze StockToolu.";
+      flash("Odhlášeno z Data Manageru i BUY Scanneru.");
+    } catch(error) {
+      flash(error.message,true);
+    }
   }
 
   async function refreshAll(first = false) {
-    if (!apiKey || busy) return;
+    if (!signedIn || busy) return;
     busy = true;
     try {
       const result = await getJson("datasets.php");
@@ -197,6 +217,10 @@
       connectedState(true);
     } catch (error) {
       $("api-status").textContent = "API chyba: " + error.message;
+      if (/Nesprávný přístupový klíč|401/.test(error.message)) {
+        connectedState(false);
+        $("api-status").textContent = "Přihlášení vypršelo. Přihlas se znovu.";
+      }
       if (first) throw error;
       flash(error.message, true);
     } finally {
@@ -440,16 +464,23 @@
     });
     if("ResizeObserver" in window)new ResizeObserver(drawChart).observe($("chart-wrapper"));
     else window.addEventListener("resize",drawChart);
-    window.setInterval(()=>{if(apiKey&&!document.hidden)refreshAll();},30000);
+    window.setInterval(()=>{if(signedIn&&!document.hidden)refreshAll();},30000);
+    setEmpty("Čeká na přihlášení", "Přihlásit se stačí jen jednou.");
+    $("api-status").textContent = "Ověřuji zapamatované přihlášení…";
     try {
-      const state=await getJson("status.php",false);
-      $("api-status").textContent=state.configured
-        ? "API běží. Zadej přístupový klíč."
-        : "API běží, ale čeká na soukromý config.php na FORPSI.";
+      const session = await getJson("session.php");
+      if (session.authenticated) {
+        connectedState(true);
+        await refreshAll(true);
+        $("api-status").textContent = "Přihlášeno automaticky · StockTool si tento prohlížeč pamatuje.";
+      } else {
+        connectedState(false);
+        $("api-status").textContent = "První přihlášení: vlož API klíč jednou.";
+      }
     } catch(error) {
-      $("api-status").textContent=error.message;
+      if (!signedIn) connectedState(false);
+      $("api-status").textContent = "Kontrola přihlášení: "+error.message;
     }
-    setEmpty("Čeká na připojení","Zadej přístupový klíč.");
   }
   document.addEventListener("DOMContentLoaded",initialize);
 })();
