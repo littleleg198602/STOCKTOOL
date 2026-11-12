@@ -5,7 +5,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'GET') {
     header('Allow: GET');
     respond(405, ['ok'=>false, 'error'=>'get_required']);
 }
-$cfg = setup();
+$cfg = setup(true); // accepts secure browser session or original API key
 $symbol = validate_symbol((string)($_GET['symbol'] ?? ''));
 $timeframe = validate_timeframe((string)($_GET['timeframe'] ?? ''));
 $limit = max(1, min(5000, (int)($_GET['limit'] ?? 1000)));
