@@ -13,7 +13,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'GET') {
     header('Allow: GET');
     respond(405, ['ok' => false, 'error' => 'get_required']);
 }
-$cfg = setup();
+$cfg = setup(true); // accepts secure browser session or original API key
 $offset = max(0, min(20000, (int)($_GET['offset'] ?? 0)));
 $limit = max(1, min(80, (int)($_GET['limit'] ?? 60)));
 $paths = glob($cfg['store'] . DIRECTORY_SEPARATOR . '*__D1.json') ?: [];
