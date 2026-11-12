@@ -13,7 +13,7 @@
   const LABELS = {BREAKOUT:"BREAKOUT",PULLBACK:"PULLBACK",TREND:"TREND",WATCH:"WATCH",NONE:"BEZ SIGNÁLU",INSUFFICIENT:"MÁLO DAT",STALE:"STARÁ DATA"};
   const nf = new Intl.NumberFormat("cs-CZ",{maximumFractionDigits:2});
   const priceFormat = new Intl.NumberFormat("cs-CZ",{maximumFractionDigits:5});
-  let apiKey = "";
+  let signedIn = false;
   let results = [];
   let selectedSymbol = "";
   let selected = null;
@@ -59,21 +59,96 @@
 
   async function request(url) {
     const response=await fetch(url,{
-      method:"GET",cache:"no-store",
-      headers:{"X-StockTool-Key":apiKey,"Accept":"application/json"}
+      method:"GET",cache:"no-store",credentials:"same-origin",
+      headers:{"Accept":"application/json"}
     });
     let json;
     try {json=await response.json();}
     catch {throw new Error("Server nevrátil platný JSON. Zkontroluj nasazení PHP na FORPSI.");}
     if (!response.ok || json.ok!==true) {
       const reasons={
-        invalid_api_key:"Nesprávný API klíč.",
+        invalid_api_key:"Přihlášení vypršelo nebo bylo odhlášeno.",
         not_configured:"Server ještě nemá soukromý config.php.",
         storage_unavailable:"Serverové úložiště není dostupné."
       };
       throw new Error(reasons[json.error] || "Serverová chyba: HTTP "+response.status+".");
     }
     return json;
+  }
+
+  function showSignedIn(yes) {
+    signedIn = yes;
+    $("login-controls").hidden = yes;
+    $("scan-button").innerHTML = yes ? "Spustit BUY Scanner <span>↗</span>"
+                                   : "Přihlásit a spustit <span>↗</span>";
+    $("logout-button").disabled = !yes;
+    if (!yes) $("rescan-button").disabled = true;
+  }
+
+  async function loginOnce() {
+    const key = $("api-key").value.trim();
+    if (key.length < 32) throw new Error("Pro první přihlášení vlož existující StockTool API klíč.");
+    try {
+      const response = await fetch("../data-manager/api/login.php",{
+        method:"POST",cache:"no-store",credentials:"same-origin",
+        headers:{"X-StockTool-Key":key,"Accept":"application/json"}
+      });
+      const data = await response.json();
+      if(!response.ok||!data.ok||!data.authenticated){
+        throw new Error(response.status===401 ? "Nesprávný klíč." :
+          "Server odmítl přihlášení (HTTP "+response.status+").");
+      }
+      showSignedIn(true);
+      status("Přihlášeno · Data Manager a BUY Scanner si toto zařízení pamatují.");
+    } finally {
+      $("api-key").value="";
+    }
+  }
+
+  async function restoreLogin() {
+    try {
+      const response=await fetch("../data-manager/api/session.php",{
+        method:"GET",cache:"no-store",credentials:"same-origin"
+      });
+      const data=await response.json();
+      if(response.ok&&data.ok&&data.authenticated){
+        showSignedIn(true);
+        status("Přihlášeno automaticky · můžeš rovnou spustit BUY Scanner.");
+      } else {
+        showSignedIn(false);
+        status("Přihlas se jednou. Příště už klíč zadávat nebudeš.");
+      }
+    } catch(error) {
+      showSignedIn(false);
+      status("Přihlášení nelze ověřit: "+error.message,true);
+    }
+  }
+
+  async function logout() {
+    if(scanning)return notify("Nejdřív dokonči probíhající analýzu.",true);
+    try {
+      const response=await fetch("../data-manager/api/logout.php",{
+        method:"POST",cache:"no-store",credentials:"same-origin"
+      });
+      if(!response.ok)throw new Error("Server nedokončil odhlášení.");
+      showSignedIn(false);
+      results=[];selected=null;selectedSymbol="";chartData=[];
+      page=0;scanComplete=false;
+      $("rescan-button").disabled=true;
+      $("copy-tickers").disabled=true;
+      $("export-txt").disabled=true;
+      $("detail-symbol").textContent="Vyber akcii";
+      $("detail-subtitle").textContent="Pro detail se nejdřív přihlas a spusť skener.";
+      $("detail-setup").textContent="Nepřihlášeno";
+      $("detail-setup").className="setup-pill neutral";
+      ["detail-sma50","detail-sma200","detail-rsi","detail-atr","detail-high","detail-momentum"].forEach(id=>$(id).textContent="—");
+      $("detail-reasons").replaceChildren();
+      $("chart-empty").hidden=false;
+      $("chart-empty").textContent="Přihlas se a spusť analýzu.";
+      drawChart();updateStats();renderTable();setProgress(0,1);
+      status("Odhlášeno z BUY Scanneru i Data Manageru.");
+      notify("Odhlášeno. Prohlížeč už relaci nepoužívá.");
+    }catch(error){notify(error.message,true);}
   }
 
   function setProgress(done,total) {
@@ -99,9 +174,10 @@
   async function runScan() {
     if (scanning) return;
     if (location.protocol!=="https:")return notify("Pro práci s API klíčem otevři zabezpečené HTTPS.",true);
-    const supplied=$("api-key").value.trim();
-    if (supplied) apiKey=supplied;
-    if (apiKey.length<32)return notify("Vlož existující StockTool API klíč (minimálně 32 znaků).",true);
+    if (!signedIn) {
+      try {await loginOnce();}
+      catch(error){status(error.message,true);notify(error.message,true);return;}
+    }
     scanning=true;
     scanComplete=false;
     results=[];
@@ -133,7 +209,6 @@
         if (done===0 && total>0)throw new Error("Server nepostupuje v dávkovém načítání.");
       } while(done<total);
       scanComplete=true;
-      $("api-key").value="";
       status("Připojeno · "+nf.format(results.length)+" D1 datasetů · "+(failedFiles?"Chybných souborů: "+failedFiles:"bez chyb při čtení")+" · "+new Date().toLocaleTimeString("cs-CZ"));
       setProgress(total,total);
       updateStats();renderTable();
@@ -145,13 +220,14 @@
     } catch(error) {
       console.error("BUY Scanner:",error);
       status("Chyba: "+error.message,true);
+      if (/Přihlášení vypršelo|401/.test(error.message)) showSignedIn(false);
       notify("Sken se nepodařilo dokončit: "+error.message,true);
       setProgress(done,total);
       renderTable();
     } finally {
       scanning=false;
       $("scan-button").disabled=false;
-      $("rescan-button").disabled=apiKey.length<32;
+      $("rescan-button").disabled=!signedIn;
     }
   }
 
@@ -380,6 +456,7 @@
     $("year").textContent=String(new Date().getFullYear());
     $("scan-button").addEventListener("click",runScan);
     $("rescan-button").addEventListener("click",runScan);
+    $("logout-button").addEventListener("click",logout);
     $("api-key").addEventListener("keydown",event=>{if(event.key==="Enter")runScan();});
     $("show-key").addEventListener("click",()=>{
       const el=$("api-key");
@@ -408,6 +485,7 @@
     } else window.addEventListener("resize",drawChart);
     updateStats();
     setProgress(0,1);
+    restoreLogin();
   }
   document.addEventListener("DOMContentLoaded",bind);
 })();
