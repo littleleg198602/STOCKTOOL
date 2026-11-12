@@ -40,13 +40,13 @@
       <div class="connect-info">
         <div class="micro-title">PŘIPOJENÍ KE STOCKTOOL</div>
         <h2>Spustit hromadnou analýzu</h2>
-        <p>Využijeme data, která už Data Manager ukládá na FORPSI. Načítání je po menších dávkách, aby se nezatěžoval hosting.</p>
+        <p>Využijeme data, která už Data Manager ukládá na FORPSI. Společné přihlášení si prohlížeč bezpečně zapamatuje až 30 dní od posledního použití.</p>
       </div>
       <div class="connect-actions">
-        <label for="api-key">Soukromý API klíč</label>
-        <div class="password-row"><input type="password" id="api-key" placeholder="Vlož stávající StockTool klíč" autocomplete="off"><button id="show-key" type="button" aria-label="Ukázat nebo skrýt klíč">◉</button></div>
-        <div class="action-row"><button class="btn btn-primary" id="scan-button" type="button">Spustit BUY Scanner <span>↗</span></button><button class="btn btn-outline" id="rescan-button" type="button" disabled>↻ Obnovit data</button></div>
-        <div class="connection-state" id="connection-state" role="status">Připojení zatím nebylo ověřeno. Klíč neukládáme do prohlížeče.</div>
+        <div id="login-controls"><label for="api-key">API klíč – pouze první přihlášení</label>
+        <div class="password-row"><input type="password" id="api-key" placeholder="Vlož stávající StockTool klíč" autocomplete="off"><button id="show-key" type="button" aria-label="Ukázat nebo skrýt klíč">◉</button></div></div>
+        <div class="action-row"><button class="btn btn-primary" id="scan-button" type="button">Přihlásit a spustit <span>↗</span></button><button class="btn btn-outline" id="rescan-button" type="button" disabled>↻ Obnovit data</button><button class="btn btn-outline" id="logout-button" type="button" disabled>Odhlásit</button></div>
+        <div class="connection-state" id="connection-state" role="status">Přihlášení platí pro Data Manager i BUY Scanner. Klíč zadáš jen jednou na tomto zařízení.</div>
       </div>
     </section>
     <section class="stats" aria-label="Přehled screeningu">
