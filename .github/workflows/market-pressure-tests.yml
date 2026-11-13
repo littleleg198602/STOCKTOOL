@@ -1,0 +1,39 @@
+name: Market Pressure Scanner checks
+
+on:
+  push:
+    paths:
+      - 'site/market-pressure/**'
+      - 'tests/market_pressure_rules_test.php'
+      - '.github/workflows/market-pressure-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  market-pressure:
+    name: Verify PHP rules and browser script
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: none
+          coverage: none
+
+      - name: PHP syntax
+        run: |
+          php -l site/market-pressure/api/scan.php
+          php -l site/market-pressure/api/pressure_rules.php
+          php -l tests/market_pressure_rules_test.php
+
+      - name: Synthetic market scenarios
+        run: php tests/market_pressure_rules_test.php
+
+      - name: Browser JavaScript syntax
+        run: node --check site/market-pressure/app.js
