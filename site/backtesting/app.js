@@ -254,11 +254,16 @@
     const map=new Map();
     for(const symbolResult of rows){
       for(const raw of symbolResult.groups||[]){
-        if(raw.status!=="ok")continue;
         const key=raw.strategy+"|"+raw.horizon;
         if(!map.has(key))map.set(key,{strategy:raw.strategy,horizon:Number(raw.horizon),
-          trades:[],seen:0,unclosed:0,overlap:0});
+          trades:[],seen:0,unclosed:0,overlap:0,tooShort:0,required:0});
         const g=map.get(key);
+        if(raw.status==="too_short") {
+          g.tooShort++;
+          g.required=Math.max(g.required,Number(raw.required)||0);
+          continue;
+        }
+        if(raw.status!=="ok")continue;
         g.trades.push(...(raw.trades||[]));
         g.seen+=Number(raw.signals_seen||0);
         g.unclosed+=Number(raw.unclosed||0);
@@ -271,11 +276,12 @@
     for(const strategy of available){
       for(const horizon of scanOptions.horizons||[]){
         const key=strategy+"|"+horizon;
-        const g=map.get(key)||{strategy,horizon,trades:[],seen:0,unclosed:0,overlap:0};
+        const g=map.get(key)||{strategy,horizon,trades:[],seen:0,unclosed:0,overlap:0,tooShort:0,required:0};
         g.stats=metric(g.trades);
         groups.push(g);
       }
     }
+    if(!currentKey&&groups.length)currentKey=groupKey(groups[0]);
     renderSummary();
     populateSelectors();
     if(markComplete){
@@ -365,6 +371,9 @@
     const count=m.count||0;
     $("risk-warning").textContent=!completed
       ?"Výsledky jsou ČÁSTEČNÉ a nejsou vhodné k porovnávání strategií."
+      :count===0 && g && g.tooShort>0
+      ?"Žádné uzavřené obchody. "+g.tooShort+" datasetů nemá minimálně "+g.required+
+        " D1 svíček pro tento horizont. Nulový počet není výnos 0 %."
       :count===0
       ?"Pro tento scénář není žádný uzavřený obchod. Neznamená to úspěch ani selhání strategie."
       :count<30
