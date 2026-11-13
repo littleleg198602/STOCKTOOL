@@ -24,3 +24,7 @@ button,input,select{font:inherit}button{cursor:pointer}button:disabled{cursor:no
 /* Navigate to independently calculated SHORT Scanner */
 .cross-short{color:#f5a2b0}
 @media(max-width:500px){.header-right .cross-short{display:none}}
+
+/* Market Pressure is a separate application; don't overcrowd the mobile toolbar. */
+.cross-pressure{color:#f9c08e}
+@media(max-width:940px){.header-right .cross-pressure{display:none}}
