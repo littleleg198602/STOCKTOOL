@@ -177,7 +177,15 @@ function bt_analyze_dataset(array $data,array $strategies,array $horizons,
         }
         $groups=bt_evaluate($bars,$symbol,$strategy,$horizons,$costs);
         foreach($groups as $group) {
-            $result['groups'][]=['strategy'=>$strategy,'status'=>'ok']+$group;
+            $required=bt_min_history($strategy)+(int)$group['horizon']+1;
+            if($n<$required) {
+                $result['groups'][]=[
+                    'strategy'=>$strategy, 'horizon'=>(int)$group['horizon'],
+                    'status'=>'too_short','required'=>$required,'available'=>$n
+                ];
+            } else {
+                $result['groups'][]=['strategy'=>$strategy,'status'=>'ok']+$group;
+            }
         }
     }
     return $result;
