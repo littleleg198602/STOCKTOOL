@@ -93,3 +93,9 @@ button,input,select{font:inherit}button{cursor:pointer}button:disabled{opacity:.
 /* Shared secure login — hide the key entry after automatic session restore */
 #login-controls[hidden]{display:none!important}
 #disconnect-button:enabled{color:#ffd4d4;border-color:#7c5060}
+
+/* SHORT cross-app navigation */
+.dm-short-link{color:#ffacb7!important}
+@media(max-width:920px){.topbar-title{display:none}}
+@media(max-width:710px){.dm-buy-link,.dm-short-link{font-size:10px!important}}
+@media(max-width:500px){.dm-buy-link{display:none!important}}
