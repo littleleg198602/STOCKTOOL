@@ -1,0 +1,42 @@
+name: Backtesting Engine checks
+
+on:
+  push:
+    paths:
+      - 'site/backtesting/**'
+      - 'tests/backtesting_engine_test.php'
+      - 'site/buy-scanner/api/**'
+      - 'site/short-scanner/api/short_rules.php'
+      - 'site/market-pressure/api/pressure_rules.php'
+      - '.github/workflows/backtesting-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backtest-tests:
+    name: PHP strategy parity, lookahead and browser syntax
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: none
+          coverage: none
+      - name: PHP lint
+        run: |
+          php -l site/backtesting/api/engine.php
+          php -l site/backtesting/api/run.php
+          php -l site/buy-scanner/api/buy_rules.php
+          php -l site/buy-scanner/api/scan.php
+          php -l site/short-scanner/api/short_rules.php
+          php -l site/market-pressure/api/pressure_rules.php
+          php -l tests/backtesting_engine_test.php
+      - name: Offline execution and scanner parity tests
+        run: php tests/backtesting_engine_test.php
+      - name: JavaScript syntax
+        run: node --check site/backtesting/app.js
