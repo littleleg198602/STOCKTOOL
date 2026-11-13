@@ -140,3 +140,55 @@ Serverová API:
 
 **Nasazení změn:** Spusť existující lokální \`Deploy-StockTool.bat\` v3 a na webu obnov stránky přes Ctrl+F5. V nové verzi zadáš klíč **naposledy při prvním přihlášení**; potom se relace automaticky obnovuje. Starý Python synchronizátor na PC není potřeba měnit ani zastavovat.
 
+
+
+---
+
+## SHORT Scanner v0.1 – samostatná aplikace pro bearish analýzu
+
+**Po nasazení:** https://www.stocktool.eu/test/short-scanner/
+
+Vlastní logika pro technické scénáře poklesu, **nikoli mechanicky invertovaný BUY Scanner**. Používá již uložená D1 data z Data Manageru na FORPSI, bez CSV, nového MT5 exportéru a bez dalšího API klíče. Sdílí stávající zabezpečenou přihlašovací relaci StockTool s Data Managerem a BUY Scannerem (pokud je platná).
+
+### Soubory
+- \`site/short-scanner/index.html\` – vlastní webová stránka.
+- \`site/short-scanner/app.js\` – filtrovaný seznam, paginace, graf, export tickerů a TXT analýzy.
+- \`site/short-scanner/styles.css\` – vlastní barevné schéma; sdílí základ responzivního designu s BUY Scannerem.
+- \`site/short-scanner/api/scan.php\` – autentizovaný PHP endpoint; dávkově prochází D1 datové soubory.
+- \`site/short-scanner/api/short_rules.php\` – samostatné čisté analytické funkce.
+- \`tests/short_rules_test.php\` – offline regresní testy pro PHP (bez API klíče a bez MT5).
+
+### Výstupy
+- **Top 10 SHORT kandidátů** – technicky potvrzená bearish formace, filtr proti extrémnímu riziku.
+- **Top 5 rizikové** – technicky slabé akcie s příznaky možného prudkého odrazu / squeeze.
+- **Top 5 nebrat** – ignorovat pro nynější SHORT vstup: příliš rizikové, zastaralé či nedostatečné informace nebo absence setupu.
+- Samostatné filtry **Breakdown / Failed Rally / Downtrend / Watch**, vše, řazení, hledání a zobrazení detailu.
+- **TXT výsledky a tickery v jednom řádku** pro MT5 (jde o výstup technického screeningu, NE pokyn obchodovat).
+
+### Technické podmínky – v0.1
+
+Minimum **210 validních dokončených D1 svíček**. Poslední svíčka maximálně 10 kalendářních dní stará (jednoduchý limit, ne burzovní kalendář). Dlouhodobý bearish režim vyžaduje současně:
+1. Close pod SMA200.
+2. SMA50 pod SMA200.
+3. SMA50 klesající proti SMA50 před 5 svíčkami.
+
+Následně:
+- **Breakdown**: v režimu poklesu close pod Low předchozích 20 svíček, RSI(14) 30–60.
+- **Failed Rally**: v režimu poklesu close pod SMA50, denní High nejméně 98 % SMA50, denní close pod open, RSI(14) 32–65.
+- **Downtrend**: v režimu poklesu close pod SMA50, dvacetisvíčková změna nejvýše -3 %, RSI(14) 30–65.
+- **Watch**: cena pod SMA200 a další známka slabosti, bez kompletní SHORT formace.
+
+**Rizikové veto (SHORT nezahrne do Top 10):** RSI pod 30; close více než 12 % pod SMA50; propad za 5 svíček o 15 % nebo více; ATR14 alespoň 7 % ceny; růst poslední svíčky o 10 % nebo více; chybné/duplicitní svíčky. Tyto příznaky se ukazují v detailu a mohou posunout jinak bearish kandidáta do kategorie „NEBRAT“.
+
+**Pořadí není predikce výnosu:** defaultně Breakdown → Failed Rally → Downtrend a následně větší záporná 20denní změna; rizikový seznam podle počtu rizikových příznaků a volatility. Bez nějakého proprietárního skóre. Hodnoty ATR, RSI, SMA, změny a důvody jsou dohledatelné v detailu.
+
+**Nezahrnuje:** dostupnost vypůjčení, poplatek za borrow, short interest, option gamma, skutečný order flow, fundamentální valuaci, vyhlášené výsledky a následné gapy. Bez těchto údajů aplikace **nemůže potvrdit proveditelný SHORT obchod**. Vše je výzkumná analýza, nikoli obchodní pokyn; Python ani server neodesílají objednávky na brokera.
+
+### Nasazení
+1. Spusť existující fungující **Deploy-StockTool.bat v3** na Windows. Nasazuje obsah \`site/\` do \`/stocktool.eu/www/test/\`.
+2. Otevři https://www.stocktool.eu/test/short-scanner/ (případně Ctrl+F5).
+3. Pokud už jsi přihlášený v Data Manageru nebo BUY Scanneru, pole pro klíč se skryje.
+4. Klikni **Spustit SHORT Scanner**. Stránka analyzuje všechny dostupné D1 datové soubory postupně v dávkách po 35, aby se omezila zátěž sdíleného hostingu.
+5. Vyzkoušej Top 10 SHORT, Top 5 rizikové, Top 5 nebrat, detail akcie a TXT.
+
+**Testování:** Statická kontrola JavaScriptu, vazby na HTML prvky a simulace nepřihlášené/přihlášené webové aplikace byly úspěšné. Offline PHP testy jsou v \`tests/short_rules_test.php\`; lze je spustit příkazem \`php tests/short_rules_test.php\` na PC/serveru s PHP. Skutečný výpočet z reálných D1 dat na FORPSI je nutné ověřit po nasazení. Není důvod znovu instalovat MT5 nebo měnit API klíč.
