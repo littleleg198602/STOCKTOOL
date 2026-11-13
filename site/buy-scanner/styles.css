@@ -20,3 +20,7 @@ button,input,select{font:inherit}button{cursor:pointer}button:disabled{cursor:no
 .action-row{flex-wrap:wrap}
 #logout-button{font-size:11px;min-width:85px}
 @media(max-width:520px){.action-row .btn{flex:1}.action-row #logout-button{flex:0 0 auto}}
+
+/* Navigate to independently calculated SHORT Scanner */
+.cross-short{color:#f5a2b0}
+@media(max-width:500px){.header-right .cross-short{display:none}}
