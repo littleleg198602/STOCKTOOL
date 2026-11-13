@@ -28,3 +28,6 @@ button,input,select{font:inherit}button{cursor:pointer}button:disabled{cursor:no
 /* Market Pressure is a separate application; don't overcrowd the mobile toolbar. */
 .cross-pressure{color:#f9c08e}
 @media(max-width:940px){.header-right .cross-pressure{display:none}}
+
+.cross-backtest{color:#ffd39c}
+@media(max-width:1160px){.header-right .cross-backtest{display:none}}
