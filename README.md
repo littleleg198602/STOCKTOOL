@@ -163,7 +163,7 @@ Vlastní logika pro technické scénáře poklesu, **nikoli mechanicky invertova
 - **Top 5 rizikové** – technicky slabé akcie s příznaky možného prudkého odrazu / squeeze.
 - **Top 5 nebrat** – ignorovat pro nynější SHORT vstup: příliš rizikové, zastaralé či nedostatečné informace nebo absence setupu.
 - Samostatné filtry **Breakdown / Failed Rally / Downtrend / Watch**, vše, řazení, hledání a zobrazení detailu.
-- **TXT výsledky a tickery v jednom řádku** pro MT5 (jde o výstup technického screeningu, NE pokyn obchodovat).
+- **TXT výsledky a tickery v jednom řádku** pro MT5, navíc jedním kliknutím společný report **Top 10 SHORT / Top 5 rizikové / Top 5 nebrat** (jde o výstup screeningu, NE pokyn obchodovat).
 
 ### Technické podmínky – v0.1
 
