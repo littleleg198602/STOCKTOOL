@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#09131e">
+  <meta name="description" content="StockTool SHORT Scanner – nezávislá analýza slabých akcií a rizik shortování z Darwinex MT5.">
+  <title>SHORT Scanner | StockTool</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <link rel="stylesheet" href="./styles.css?v=auth2">
+  <script defer src="./app.js?v=auth2"></script>
+</head>
+<body>
+  <a class="skip-link" href="#scanner">Přejít na BUY Scanner</a>
+  <header class="header">
+    <div class="wrap header-inner">
+      <a class="brand" href="../" aria-label="StockTool – hlavní stránka">
+        <span class="brand-icon" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none"><path d="m5 22 8-8 6 4 9-11m-7 0h7v7" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/></svg>
+        </span>
+        <span>STOCK<span>TOOL</span><small>.EU</small></span>
+      </a>
+      <div class="header-right"><span class="section-breadcrumb">/ SHORT SCANNER</span><span class="beta-badge">BETA V0.1</span><a class="back" href="../">← Platforma</a></div>
+    </div>
+  </header>
+  <main class="wrap" id="scanner">
+    <div class="hero">
+      <div class="hero-text">
+        <div class="eyebrow"><i class="live-dot"></i> STOCKTOOL / BEARISH RESEARCH</div>
+        <h1>SHORT <span>Scanner.</span></h1>
+        <p>Hledej slabé akcie, průrazy podpory a neúspěšné růsty. Zvlášť rozlišujeme technické SHORT kandidáty od příliš riskantních vstupů.</p>
+      </div>
+      <div class="data-source"><span>DATOVÝ ZDROJ</span><strong>MT5 · D1</strong><small>Reálná brokerova OHLCV historie</small></div>
+    </div>
+    <section class="notice" aria-label="Upozornění na analytický rozsah">
+      <span class="notice-icon">i</span>
+      <p><strong>Technické scénáře poklesu, nikoliv pokyny k shortování.</strong> Data MT5 nepotvrzují dostupnost půjčení akcií, výši borrow fee, maržové požadavky ani riziko squeeze. Nejde o order flow, fundamentální doporučení ani záruku výnosu.</p>
+    </section>
+    <section class="connect-panel panel" aria-label="Přihlášení a spuštění skeneru">
+      <div class="connect-info">
+        <div class="micro-title">PŘIPOJENÍ KE STOCKTOOL</div>
+        <h2>Hledat kandidáty na pokles</h2>
+        <p>Využijeme data, která už Data Manager ukládá na FORPSI. Společné přihlášení si prohlížeč bezpečně zapamatuje až 30 dní od posledního použití.</p>
+      </div>
+      <div class="connect-actions">
+        <div id="login-controls"><label for="api-key">API klíč – pouze první přihlášení</label>
+        <div class="password-row"><input type="password" id="api-key" placeholder="Vlož stávající StockTool klíč" autocomplete="off"><button id="show-key" type="button" aria-label="Ukázat nebo skrýt klíč">◉</button></div></div>
+        <div class="action-row"><button class="btn btn-primary" id="scan-button" type="button">Spustit SHORT Scanner <span>↗</span></button><button class="btn btn-outline" id="rescan-button" type="button" disabled>↻ Obnovit data</button><button class="btn btn-outline" id="logout-button" type="button" disabled>Odhlásit</button></div>
+        <div class="connection-state" id="connection-state" role="status">Přihlášení platí pro Data Manager i BUY Scanner. Klíč zadáš jen jednou na tomto zařízení.</div>
+      </div>
+    </section>
+    <section class="stats" aria-label="Přehled screeningu">
+      <div class="stat-card primary-stat"><span>SHORT kandidáti</span><strong id="stat-short">—</strong><small>Breakdown · Failed Rally · Downtrend</small></div>
+      <div class="stat-card"><span>Prozkoumané akcie</span><strong id="stat-scanned">—</strong><small id="stat-scanned-note">Čeká na sken</small></div>
+      <div class="stat-card"><span>Rizikové SHORT situace</span><strong id="stat-risk">—</strong><small>Možný squeeze / rychlý odraz</small></div>
+      <div class="stat-card"><span>Nebrat / mimo filtr</span><strong id="stat-avoid">—</strong><small>Včetně neúplných dat</small></div>
+    </section>
+    <div class="progress-row" aria-live="polite"><span id="progress-label">Načtení ještě nezačalo.</span><div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div><span id="progress-number">0 %</span></div>
+    <section class="workspace">
+      <div class="results-panel panel">
+        <div class="results-head">
+          <div><div class="micro-title">SHORT / D1 SCREENER</div><h2>Výsledky analýzy <span id="filtered-count"></span></h2></div>
+          <div class="toolbar-buttons">
+            <button class="btn btn-outline" id="copy-tickers" type="button" disabled>Kopírovat tickery</button>
+            <button class="btn btn-outline" id="export-txt" type="button" disabled>↓ TXT výstup</button>
+          </div>
+        </div>
+        <div class="controls">
+          <div class="filter-chip-row" role="group" aria-label="Kategorie SHORT screeningu">
+            <button type="button" class="chip active" data-filter="short" aria-pressed="true">Top 10 SHORT</button>
+            <button type="button" class="chip" data-filter="risk" aria-pressed="false">Top 5 rizikové</button>
+            <button type="button" class="chip" data-filter="avoid" aria-pressed="false">Top 5 nebrat</button>
+            <button type="button" class="chip" data-filter="all" aria-pressed="false">Všechny</button>
+            <button type="button" class="chip" data-filter="BREAKDOWN" aria-pressed="false">Breakdown</button>
+            <button type="button" class="chip" data-filter="FAILED_RALLY" aria-pressed="false">Failed Rally</button>
+            <button type="button" class="chip" data-filter="DOWNTREND" aria-pressed="false">Downtrend</button>
+            <button type="button" class="chip" data-filter="WATCH" aria-pressed="false">Watch</button>
+          </div>
+          <div class="more-controls">
+            <label class="search-field"><span class="sr-only">Hledat ticker</span><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.8"/><path d="m13.5 13.5 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><input type="search" id="ticker-search" placeholder="Hledat ticker…" autocomplete="off"></label>
+            <label class="control-label">Řazení <select id="sort-mode"><option value="priority">Formace + slabost</option><option value="momentum">20denní pokles ↓</option><option value="atr">ATR % ↓</option><option value="rsi">RSI ↑</option><option value="ticker">Ticker A–Z</option></select></label>
+            <label class="check-filter"><input type="checkbox" id="top-ten" checked> Jen Top výběr</label>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Akcie</th><th>Formace</th><th>Close</th><th>RSI(14)</th><th>20 D změna</th><th>Od SMA200</th><th>ATR %</th><th>Poslední D1</th></tr></thead>
+            <tbody id="results-body"><tr><td colspan="8" class="empty-cell">Pro výsledky se přihlas do StockTool a spusť SHORT Scanner.</td></tr></tbody>
+          </table>
+        </div>
+        <div class="table-foot"><span id="table-note">Výsledky jsou pouze technický screening. Shortovatelnost a výpůjční náklady nejsou ověřeny.</span><div class="pager"><button id="prev-page" type="button" aria-label="Předchozí stránka" disabled>←</button><span id="page-caption">—</span><button id="next-page" type="button" aria-label="Další stránka" disabled>→</button></div></div>
+      </div>
+      <aside class="detail-panel panel">
+        <div class="detail-head"><div class="micro-title">DETAIL / VÝPOČET</div><h2 id="detail-symbol">Vyber akcii</h2><p id="detail-subtitle">Po skenu klikni na některý ticker v tabulce.</p></div>
+        <span class="setup-pill neutral" id="detail-setup">Zatím žádná analýza</span>
+        <div class="detail-chart"><canvas id="detail-chart" role="img" aria-label="Poslední denní zavírací ceny vybrané akcie"></canvas><div id="chart-empty" class="detail-chart-empty">Graf se načte po výběru akcie.</div></div>
+        <div class="detail-metrics">
+          <div><span>SMA50</span><strong id="detail-sma50">—</strong></div>
+          <div><span>SMA200</span><strong id="detail-sma200">—</strong></div>
+          <div><span>RSI14</span><strong id="detail-rsi">—</strong></div>
+          <div><span>ATR14 %</span><strong id="detail-atr">—</strong></div>
+          <div><span>Nad 52týd. low</span><strong id="detail-low">—</strong></div>
+          <div><span>20 D změna</span><strong id="detail-momentum">—</strong></div>
+        </div>
+        <h3>Proč tato formace?</h3>
+        <ul id="detail-reasons" class="reason-list"><li>Po výběru titulu zobrazíme přesné důvody z výpočtu.</li></ul>
+        <h3>Rizika SHORT / možný squeeze</h3><ul id="detail-risks" class="reason-list"><li>U kandidáta prověříme rizika odrazu a volatility.</li></ul><div class="detail-footer" id="detail-footer">Zdroj: MT5 / D1 · Dostupnost shortování neověřena</div>
+        <a class="data-manager-link" href="../data-manager/">Data Manager ↗</a> <a class="data-manager-link" style="margin-left:15px" href="../buy-scanner/">BUY Scanner ↗</a>
+      </aside>
+    </section>
+    <section class="rules panel" aria-labelledby="rules-heading">
+      <div><div class="micro-title">SAMOSTATNÁ SHORT LOGIKA / V0.1</div><h2 id="rules-heading">Jak vybíráme SHORT?</h2><p>Klesající trend potvrzujeme cenou pod SMA200 a klesající SMA50 pod SMA200. SHORT kandidáty navíc filtrujeme proti přeprodanosti, prudkému odrazu a extrémní volatilitě. Žádné proprietární skóre.</p></div>
+      <div class="rules-grid">
+        <div><span class="rule-dot breakout"></span><strong>Breakdown</strong><p>Potvrzený poklesový trend, close pod minimem předchozích 20 svíček a RSI 30–60.</p></div>
+        <div><span class="rule-dot pullback"></span><strong>Failed Rally</strong><p>Neúspěšný návrat k SMA50, medvědí svíčka a RSI 32–65.</p></div>
+        <div><span class="rule-dot trend"></span><strong>Downtrend</strong><p>Poklesový trend, cena pod SMA50 a 20denní pokles alespoň 3 %.</p></div>
+        <div><span class="rule-dot watch"></span><strong>Vyloučení rizika</strong><p>RSI pod 30, prudký výprodej, ATR nad 7 %, extrémní vzdálenost od SMA50 a stará data.</p></div>
+      </div>
+    </section>
+  </main>
+  <footer class="wrap footer"><span>© <span id="year">2026</span> StockTool.eu · SHORT Scanner BETA</span><span>Výzkumný nástroj · Žádné investiční doporučení</span></footer>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
