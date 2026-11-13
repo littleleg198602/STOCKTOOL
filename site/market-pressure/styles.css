@@ -1,0 +1,85 @@
+@import url("../buy-scanner/styles.css?v=auth2");
+
+/* Market Pressure: its own analytical appearance, shared StockTool components. */
+:root {
+  --bg:#0a1720;
+  --panel:#101f2d;
+  --panel2:#1c3543;
+  --line:#2c5360;
+  --text:#ebf5f8;
+  --muted:#91b6bc;
+  --mint:#f6b77b;
+  --blue:#7dc9e1;
+  --yellow:#f6bd73;
+  --red:#f48c97;
+}
+body {
+  background:radial-gradient(ellipse 630px 560px at 80% 0%,#20575c40,transparent),
+    radial-gradient(ellipse 430px 550px at 12% 41%,#744d2c1b,transparent),#091620;
+}
+.header {background:#0d1b27ed;border-bottom-color:#34505d}
+.brand-icon {background:#17463e;border-color:#317e68;color:#79e4c5}
+.brand>span:last-child>span {color:#77e3c4}
+.hero h1 span {color:#fac087}
+.live-dot {background:#f5b476;box-shadow:0 0 0 4px #f6b77b23}
+.eyebrow,.micro-title {color:#f2b784}
+.data-source {background:#173234;border-color:#3b786b}
+.data-source strong {color:#b4f0dd}
+.data-source>span,.data-source small {color:#9bc5bd}
+.notice {background:#292723;border-color:#625344}
+.notice-icon {background:#71533b;color:#ffe4b9}
+.notice p {color:#c3b8a6}
+.notice strong {color:#ffdfb4}
+.btn-primary {background:#f6bb81;color:#272019}
+.btn-primary:hover {background:#ffd3a5}
+.stat-card.primary-stat {background:linear-gradient(145deg,#3c3428,#19343c);border-color:#876b46}
+.stat-card.primary-stat strong {color:#ffc693}
+.progress-bar {background:linear-gradient(90deg,#1d918f,#f0ae70)}
+.chip.active {background:#f3be8d;border-color:#f9c99f;color:#2e2418}
+.positive {color:#65e0bf!important}
+.negative {color:#fb9f9f!important}
+.setup-chip,.setup-pill {white-space:nowrap}
+.setup-chip.panic,.setup-pill.panic {background:#503039;border-color:#c3787f;color:#ffb4ba}
+.setup-chip.forced_proxy,.setup-pill.forced_proxy {background:#51392d;border-color:#b98753;color:#ffd6a3}
+.setup-chip.continuation,.setup-pill.continuation {background:#4a3830;border-color:#9a7459;color:#edc19d}
+.setup-chip.exhaustion,.setup-pill.exhaustion {background:#203b4a;border-color:#4e9bbd;color:#a4dffc}
+.setup-chip.reversal,.setup-pill.reversal {background:#1a4339;border-color:#4a9d7b;color:#b7f4d1}
+.setup-chip.watch,.setup-pill.watch {background:#283a45;border-color:#5d8091;color:#b4d4e1}
+.setup-chip.stale,.setup-pill.stale,
+.setup-chip.bad_data,.setup-pill.bad_data,
+.setup-chip.insufficient,.setup-pill.insufficient{background:#3b3644;border-color:#81788b;color:#dbd0e8}
+.ticker-button {color:#e5f7f2!important;text-decoration-color:#74bdab!important}
+.reason-list li::marker {color:#f4b981}
+.warning-list {border-top:1px solid #3d505a;padding-top:13px}
+.warning-list li::marker {color:#f3a190}
+.data-manager-link {color:#a8f0d5}
+.cross-links{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.cross-short {color:#f7a4af}
+.cross-buy {color:#9de7c9}
+#login-controls[hidden]{display:none!important}
+.action-row{flex-wrap:wrap}
+#logout-button{font-size:11px}
+.table-scroll table{min-width:860px}
+.pressure-metrics {grid-template-columns:repeat(2,minmax(0,1fr))}
+.rules-footnote {
+  padding-top:18px;margin:17px 0 0;border-top:1px solid #354751;
+  font-size:11px;line-height:1.8;color:#96b3bd
+}
+.rule-dot.panic-dot {background:#f2979e}
+.rule-dot.forced-dot {background:#e7a671}
+.rule-dot.exhaustion-dot {background:#7dc9e1}
+.rule-dot.reversal-dot {background:#65e0bf}
+.detail-panel h3 {line-height:1.45}
+.detail-metrics strong {font-variant-numeric:tabular-nums}
+#detail-points {color:#f1c698}
+#detail-clv {color:#8ed7df}
+@media(max-width:880px){
+ .header-right{gap:12px}
+ .cross-buy,.cross-short{font-size:10px}
+}
+@media(max-width:520px){
+ .header-right .cross-buy,.header-right .cross-short{display:none}
+ .action-row .btn{flex:1}
+ #logout-button{flex:0 0 auto}
+ .pressure-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
