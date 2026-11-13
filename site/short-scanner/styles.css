@@ -62,3 +62,6 @@ body {
 /* Market Pressure cross navigation */
 .cross-pressure{color:#f9c08e}
 @media(max-width:980px){.header-right .cross-pressure{display:none}}
+
+.cross-backtest{color:#ffd39c}
+@media(max-width:1180px){.header-right .cross-backtest{display:none}}
