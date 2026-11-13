@@ -21,7 +21,7 @@ function private_dir(): string {
 }
 
 /**
- * One StockTool login for both /test/data-manager and /test/buy-scanner.
+ * Shared StockTool login for Data Manager, BUY Scanner and SHORT Scanner.
  * The PHP session contains only authorization state, NOT the raw API key.
  * The browser receives an HttpOnly + Secure + SameSite cookie.
  */
