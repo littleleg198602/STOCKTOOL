@@ -103,3 +103,6 @@ button,input,select{font:inherit}button{cursor:pointer}button:disabled{opacity:.
 /* Market Pressure navigation */
 .dm-pressure-link{color:#ffc58d!important}
 @media(max-width:1150px){.dm-pressure-link{display:none!important}}
+
+.dm-backtest-link{color:#ffc995!important}
+@media(max-width:1380px){.dm-backtest-link{display:none!important}}
