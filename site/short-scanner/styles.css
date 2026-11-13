@@ -55,3 +55,6 @@ body {
   .action-row .btn {flex:1}
   #logout-button {flex:0 0 auto}
 }
+/* Navigate back to separate BUY logic */
+.cross-buy{color:#a8f4d9}
+@media(max-width:500px){.header-right .cross-buy{display:none}}
