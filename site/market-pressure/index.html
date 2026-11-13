@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0a1720">
+  <meta name="description" content="StockTool Market Pressure Scanner – cenové indikace paniky, možného nuceného prodeje, vyčerpání a obratu z MT5.">
+  <title>Market Pressure Scanner | StockTool</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <link rel="stylesheet" href="./styles.css?v=mp1">
+  <script defer src="./app.js?v=mp1"></script>
+</head>
+<body>
+  <a class="skip-link" href="#scanner">Přejít na Market Pressure Scanner</a>
+  <header class="header">
+    <div class="wrap header-inner">
+      <a class="brand" href="../" aria-label="StockTool – hlavní stránka">
+        <span class="brand-icon" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none"><path d="M3 18h7l4-10 6 15 4-8h5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <span>STOCK<span>TOOL</span><small>.EU</small></span>
+      </a>
+      <div class="header-right">
+        <span class="section-breadcrumb">/ MARKET PRESSURE</span>
+        <span class="beta-badge">BETA 0.1</span>
+        <a class="back cross-buy" href="../buy-scanner/">BUY ↗</a>
+        <a class="back cross-short" href="../short-scanner/">SHORT ↘</a>
+        <a class="back" href="../">← Platforma</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap" id="scanner">
+    <div class="hero">
+      <div class="hero-text">
+        <div class="eyebrow"><i class="live-dot"></i> STOCKTOOL / MARKET BEHAVIOUR</div>
+        <h1>Market <span>Pressure.</span></h1>
+        <p>Hledání neobvyklých výprodejů, cenových stop paniky a možného vyčerpání prodejního tlaku napříč akciemi dostupnými v MT5.</p>
+      </div>
+      <div class="data-source"><span>DATOVÝ ZDROJ</span><strong>MT5 · D1</strong><small>OHLC + brokerovo tick volume</small></div>
+    </div>
+
+    <section class="notice" aria-label="Omezení použitých dat">
+      <span class="notice-icon">!</span>
+      <p><strong>Důležité rozlišení:</strong> „Panic“ a „Forced Selling“ jsou zde pouze <strong>cenové a aktivitní proxy</strong>. OHLC a tick volume neprozradí, kdo prodává, zda jde o margin call, skutečný order flow, burzovní objem ani příčinu pohybu. „Možný obrat“ není nákupní signál ani předpověď.</p>
+    </section>
+
+    <section class="connect-panel panel" aria-label="Spuštění analýzy">
+      <div class="connect-info">
+        <div class="micro-title">STEJNÁ DATABÁZE / SAMOSTATNÉ VÝPOČTY</div>
+        <h2>Prozkoumat tržní tlak</h2>
+        <p>Data už leží na FORPSI. Není potřeba další export, Python ani nové přihlašování. Po rozpoznání společné StockTool relace se analýza spustí automaticky.</p>
+      </div>
+      <div class="connect-actions">
+        <div id="login-controls">
+          <label for="api-key">API klíč – pouze při prvním přihlášení na tomto zařízení</label>
+          <div class="password-row">
+            <input type="password" id="api-key" placeholder="Stávající StockTool klíč" autocomplete="off">
+            <button id="show-key" type="button" aria-label="Ukázat nebo skrýt klíč">◉</button>
+          </div>
+        </div>
+        <div class="action-row">
+          <button class="btn btn-primary" id="scan-button" type="button">Přihlásit a analyzovat <span>↗</span></button>
+          <button class="btn btn-outline" id="rescan-button" type="button" disabled>↻ Obnovit analýzu</button>
+          <button class="btn btn-outline" id="logout-button" type="button" disabled>Odhlásit</button>
+        </div>
+        <div class="connection-state" id="connection-state" role="status">Ověřuji společné přihlášení StockTool…</div>
+      </div>
+    </section>
+
+    <section class="stats" aria-label="Souhrn tržního tlaku">
+      <div class="stat-card"><span>Prozkoumané akcie</span><strong id="stat-scanned">—</strong><small id="stat-scanned-note">Čeká na synchronizovaná data</small></div>
+      <div class="stat-card primary-stat"><span>Panické cenové situace</span><strong id="stat-panic">—</strong><small>Proxy: prudké propady + slabé close</small></div>
+      <div class="stat-card"><span>Forced selling proxy</span><strong id="stat-forced">—</strong><small>Nikoliv potvrzené likvidace</small></div>
+      <div class="stat-card"><span>Možné obraty / vyčerpání</span><strong id="stat-reversal">—</strong><small>Včasná technická hypotéza</small></div>
+    </section>
+
+    <div class="progress-row" aria-live="polite">
+      <span id="progress-label">Analýza zatím nezačala.</span>
+      <div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+      <span id="progress-number">0 %</span>
+    </div>
+
+    <section class="workspace">
+      <div class="results-panel panel">
+        <div class="results-head">
+          <div><div class="micro-title">MT5 / D1 / PRODEJNÍ TLAK</div><h2>Výsledky <span id="filtered-count"></span></h2></div>
+          <div class="toolbar-buttons">
+            <button class="btn btn-outline" id="copy-tickers" type="button" disabled>Kopírovat tickery</button>
+            <button class="btn btn-outline" id="export-txt" type="button" disabled>↓ TXT výběr</button>
+            <button class="btn btn-outline" id="export-all" type="button" disabled>↓ TXT souhrn Top 10</button>
+          </div>
+        </div>
+        <div class="controls">
+          <div class="filter-chip-row" role="group" aria-label="Typ indikace">
+            <button class="chip active" type="button" data-filter="pressure" aria-pressed="true">Výprodejový tlak</button>
+            <button class="chip" type="button" data-filter="panic" aria-pressed="false">Panika</button>
+            <button class="chip" type="button" data-filter="forced" aria-pressed="false">Forced proxy</button>
+            <button class="chip" type="button" data-filter="exhaustion" aria-pressed="false">Vyčerpání</button>
+            <button class="chip" type="button" data-filter="reversal" aria-pressed="false">Obrat</button>
+            <button class="chip" type="button" data-filter="watch_buy" aria-pressed="false">Sledovat BUY</button>
+            <button class="chip" type="button" data-filter="watch_down" aria-pressed="false">Sledovat pokles</button>
+            <button class="chip" type="button" data-filter="all" aria-pressed="false">Vše</button>
+          </div>
+          <div class="more-controls">
+            <label class="search-field"><span class="sr-only">Hledat symbol</span>
+              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.8"/><path d="m13.5 13.5 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              <input type="search" id="ticker-search" placeholder="Ticker (např. AAPL)…" autocomplete="off">
+            </label>
+            <label class="control-label">Řazení
+              <select id="sort-mode">
+                <option value="priority">Indikace + intenzita</option>
+                <option value="points">Tlakové body ↓</option>
+                <option value="fall">5 D pokles ↓</option>
+                <option value="volume">Tick aktivita ↓</option>
+                <option value="ticker">Ticker A–Z</option>
+              </select>
+            </label>
+            <label class="check-filter"><input type="checkbox" id="top-ten" checked> Top 10</label>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Akcie</th><th>Výsledek</th><th>1 D</th><th>5 D</th><th>Rozpětí / ATR</th><th>Tick aktivita</th><th>Tlak / 9</th><th>Poslední D1</th></tr></thead>
+            <tbody id="results-body"><tr><td colspan="8" class="empty-cell">Po přihlášení se spustí analýza dostupných D1 svíček.</td></tr></tbody>
+          </table>
+        </div>
+        <div class="table-foot">
+          <span id="table-note">Heuristické indikace, nikoliv burzovní order flow.</span>
+          <div class="pager">
+            <button id="prev-page" type="button" aria-label="Předchozí stránka" disabled>←</button>
+            <span id="page-caption">—</span>
+            <button id="next-page" type="button" aria-label="Další stránka" disabled>→</button>
+          </div>
+        </div>
+      </div>
+
+      <aside class="detail-panel panel">
+        <div class="detail-head">
+          <div class="micro-title">ANALÝZA JEDNÉ AKCIE</div>
+          <h2 id="detail-symbol">Vyber akcii</h2>
+          <p id="detail-subtitle">Po dokončení skenu klikni na ticker.</p>
+        </div>
+        <span class="setup-pill neutral" id="detail-setup">Čeká na data</span>
+        <div class="detail-chart">
+          <canvas id="detail-chart" role="img" aria-label="Graf posledních 120 denních zavíracích cen"></canvas>
+          <div id="chart-empty" class="detail-chart-empty">Graf se zobrazí po výběru akcie.</div>
+        </div>
+        <div class="detail-metrics pressure-metrics">
+          <div><span>1 D změna</span><strong id="detail-ret1">—</strong></div>
+          <div><span>5 D změna</span><strong id="detail-ret5">—</strong></div>
+          <div><span>Pohyb / ATR</span><strong id="detail-move-atr">—</strong></div>
+          <div><span>Rozpětí / ATR</span><strong id="detail-range-atr">—</strong></div>
+          <div><span>Close v rozpětí</span><strong id="detail-clv">—</strong></div>
+          <div><span>Tick aktivita</span><strong id="detail-volume">—</strong></div>
+          <div><span>Poklesových D1 z 5</span><strong id="detail-down5">—</strong></div>
+          <div><span>Tlakové body (0–9)</span><strong id="detail-points">—</strong></div>
+        </div>
+        <h3>Co tento výsledek znamená?</h3>
+        <ul class="reason-list" id="detail-reasons"><li>Pravidla a měřitelné indikátory se zobrazí po výběru akcie.</li></ul>
+        <h3>Limity a rizika interpretace</h3>
+        <ul class="reason-list warning-list" id="detail-warnings"><li>Nemáme přímé informace o identitě prodejců ani nucené likvidaci.</li></ul>
+        <div class="detail-footer" id="detail-footer">Zdroj: MT5 / D1 / brokerovo tick volume</div>
+        <div class="cross-links">
+          <a class="data-manager-link" href="../data-manager/">Data Manager ↗</a>
+          <a class="data-manager-link" href="../buy-scanner/">BUY Scanner ↗</a>
+          <a class="data-manager-link" href="../short-scanner/">SHORT Scanner ↗</a>
+        </div>
+      </aside>
+    </section>
+
+    <section class="rules panel" aria-labelledby="rules-heading">
+      <div><div class="micro-title">PŘESNÁ PRAVIDLA / V0.1</div>
+      <h2 id="rules-heading">Jak rozpoznáváme neobvyklý tlak?</h2>
+      <p>Každý indikátor vychází z uzavřených D1 svíček. Tlakové body 0–9 jsou jen součet splněných pozorovatelných podmínek – nikoliv pravděpodobnost výnosu ani „AI skóre“.</p></div>
+      <div class="rules-grid">
+        <div><span class="rule-dot panic-dot"></span><strong>Panika · proxy</strong><p>Denní propad ≥2 %, pohyb alespoň -1,25 ATR, rozpětí ≥1,4 ATR a close poblíž denního minima.</p></div>
+        <div><span class="rule-dot forced-dot"></span><strong>Forced selling · proxy</strong><p>Propad ≥7 % za 5 D1 a ≥10 % za 20 D1, alespoň 4 poklesové dny a 2 výrazné medvědí svíčky.</p></div>
+        <div><span class="rule-dot exhaustion-dot"></span><strong>Vyčerpání</strong><p>Po nedávném výprodeji nové 20D minimum, spodní knot ≥35 % rozpětí a uzavření v horní části svíčky.</p></div>
+        <div><span class="rule-dot reversal-dot"></span><strong>Možný obrat</strong><p>Do 5 dokončených svíček po výprodeji bullish close nad High předešlé D1 a close v horních 32 % rozpětí.</p></div>
+      </div>
+      <p class="rules-footnote">Minimálně 80 validních D1 svíček, aktuální poslední svíčka nejvýše 10 dní stará. Víkendy a svátky samy o sobě nejsou chybějícími daty. Nástroj nezjišťuje skutečný order flow, burzovní objem, margin cally ani short interest.</p>
+    </section>
+  </main>
+  <footer class="wrap footer">
+    <span>© <span id="year">2026</span> StockTool.eu · Market Pressure BETA</span>
+    <span>Výzkumný nástroj · Není investičním doporučením</span>
+  </footer>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
