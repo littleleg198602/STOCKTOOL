@@ -99,7 +99,7 @@
           "Server odmítl přihlášení (HTTP "+response.status+").");
       }
       showSignedIn(true);
-      status("Přihlášeno · Data Manager a BUY Scanner si toto zařízení pamatují.");
+      status("Přihlášeno · Data Manager, BUY a SHORT Scanner používají stejnou relaci.");
     } finally {
       $("api-key").value="";
     }
@@ -113,7 +113,7 @@
       const data=await response.json();
       if(response.ok&&data.ok&&data.authenticated){
         showSignedIn(true);
-        status("Přihlášeno automaticky · můžeš rovnou spustit BUY Scanner.");
+        status("Přihlášeno automaticky · můžeš rovnou spustit SHORT Scanner.");
       } else {
         showSignedIn(false);
         status("Přihlas se jednou. Příště už klíč zadávat nebudeš.");
@@ -141,13 +141,13 @@
       $("detail-subtitle").textContent="Pro detail se nejdřív přihlas a spusť skener.";
       $("detail-setup").textContent="Nepřihlášeno";
       $("detail-setup").className="setup-pill neutral";
-      ["detail-sma50","detail-sma200","detail-rsi","detail-atr","detail-high","detail-momentum"].forEach(id=>$(id).textContent="—");
+      ["detail-sma50","detail-sma200","detail-rsi","detail-atr","detail-low","detail-momentum"].forEach(id=>$(id).textContent="—");
       $("detail-reasons").replaceChildren();
       $("detail-risks").replaceChildren();
       $("chart-empty").hidden=false;
       $("chart-empty").textContent="Přihlas se a spusť analýzu.";
       drawChart();updateStats();renderTable();setProgress(0,1);
-      status("Odhlášeno z BUY Scanneru i Data Manageru.");
+      status("Odhlášeno z Data Manageru, BUY a SHORT Scanneru.");
       notify("Odhlášeno. Prohlížeč už relaci nepoužívá.");
     }catch(error){notify(error.message,true);}
   }
