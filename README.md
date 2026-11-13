@@ -192,3 +192,65 @@ Následně:
 5. Vyzkoušej Top 10 SHORT, Top 5 rizikové, Top 5 nebrat, detail akcie a TXT.
 
 **Testování:** Statická kontrola JavaScriptu, vazby na HTML prvky a simulace nepřihlášené/přihlášené webové aplikace byly úspěšné. Offline PHP testy jsou v \`tests/short_rules_test.php\`; lze je spustit příkazem \`php tests/short_rules_test.php\` na PC/serveru s PHP. Skutečný výpočet z reálných D1 dat na FORPSI je nutné ověřit po nasazení. Není důvod znovu instalovat MT5 nebo měnit API klíč.
+
+
+---
+
+## Market Pressure Scanner v0.1 – aplikace 04
+
+**Po nasazení přes stávající Deploy v3:**
+https://www.stocktool.eu/test/market-pressure/
+
+Market Pressure Scanner je samostatná čtvrtá webová aplikace nad již synchronizovanými **MT5 D1 OHLC + brokerovým tick volume**. Nemění BUY nebo SHORT pravidla, nepřidává exportér do MT5, nevytváří objednávky a nepotřebuje nový API klíč. Po otevření se automaticky přihlásí pomocí stávajícího zabezpečeného StockTool session cookie a spustí analýzu dostupných D1 datasetů.
+
+**Pozor: NEJDE O SKUTEČNÝ ORDER FLOW ani důkaz Forced Selling.** Uzavřené svíčky ani brokerovo tick volume neprozradí identitu obchodníků, margin cally, nucené likvidace, short interest, burzovní objem ani tok objednávek. Všechny názvy Panika/Forced Selling jsou pouze cenové proxy.
+
+### Soubory
+- \`site/market-pressure/index.html\` – přehled indikací, filtrů a rizik.
+- \`site/market-pressure/app.js\` – automatická relace, dávkové načítání, Top 10, detail, graf, kopírování tickerů, TXT souhrn.
+- \`site/market-pressure/styles.css\` – samostatný barevný styl; základní webový design sdílený přes relativní CSS import.
+- \`site/market-pressure/api/scan.php\` – přihlášené read-only PHP API, dávky po 30 z již uložených D1 datasetů; žádné další síťové zdroje.
+- \`site/market-pressure/api/pressure_rules.php\` – čisté deterministické analytické funkce.
+- \`tests/market_pressure_rules_test.php\` – syntetické regresní testy v PHP CLI bez klíčů a bez spojení na MT5.
+
+### Přesné vzorce v0.1
+
+Nejdříve vyžadujeme minimálně 80 validních D1 svíček a poslední svíčku maximálně 10 kalendářních dní starou. Historie s duplicitním časem nebo OHLC chybou do aktuálních žebříčků nepatří.
+
+**Indikace panického výprodeje:**
+- D1 změna Close vůči předchozímu Close ≤ -2 %.
+- Denní cenový pohyb v absolutních jednotkách alespoň -1,25 **ATR14 před poslední svíčkou**.
+- True Range poslední svíčky alespoň 1,4 předchozího ATR14.
+- Close v dolních 32 % denního rozpětí High–Low.
+
+**Forced selling – pouze cenová proxy:**
+- D1 Close změna za 5 dokončených svíček nejvýše -7 % a za 20 nejvýše -10 %.
+- Aspoň 4 z posledních 5 svíček mají Close níže než předchozí Close.
+- Aspoň 2 z posledních 5 svíček jsou medvědí s True Range alespoň 1,3 předchozího ATR14.
+- Toto **nedokazuje** nucenou likvidaci. Výstup je záměrně označen jako "Forced proxy".
+
+**Vyčerpání:** Po aktuální nebo nedávné (max. 5 předchozích dokončených D1) panické/forced-proxy epizodě vytvoří aktuální svíčka nové Low předchozích 20 D1; její spodní knot tvoří alespoň 35 % rozpětí a Close skončí v horních 45 % rozpětí. Jde pouze o hypotézu možného vyčerpání, ne potvrzení bottom.
+
+**Možný obrat:** V posledních 5 *předchozích* D1 se vyskytla panická/forced-proxy epizoda, aktuální svíčka je růstová, Close je nad High předchozího dne a v horních 32 % vlastního rozpětí. Žádná budoucí svíčka není použita (bez look-ahead).
+
+**Pokračující prodejní tlak:** 5denní změna ≤ -4 %, alespoň 3 poklesové svíčky za 5 D1 a Close pod předchozím 20svíčkovým Low nebo v dolních 35 % rozpětí; případně nová panická/forced-proxy epizoda.
+
+**Tlakové body 0–9:** součet +1 za propad posledního dne ≥2 %, +2 za cenový pohyb alespoň -1,25 ATR, +1 za rozpětí ≥1,4 ATR, +1 za Close v dolních 30 % rozpětí, +1 za tick volume ≥1,5× průměr 20 předchozích svíček, +1 za ≥4 poklesové dny z 5, +1 za pětidenní propad ≥7 %, +1 za Close pod Low předchozích 20 svíček. Je to **transparentní počet splněných podmínek**, nikoli pravděpodobnost výnosu, confidence level nebo "AI skóre".
+
+Pokud tick volume chybí nebo je nula, poměr aktivity se vrací jako \`null\` a nepřičítají se body za objem. Brokerovo tick volume **není** skutečný burzovní volume.
+
+### Výsledky webu
+- Prodejní tlak / panika / forced proxy / vyčerpání / možné obraty / sledovat BUY / sledovat pokračování poklesu / všechny akcie.
+- Každý ticker má vysvětlení, varování, 1/5/20 D změnu, rozpětí/ATR, close location, tick volume, stav dat a graf.
+- Výběr Top 10, filtry, řazení a hledání; tickery v jednom řádku pro MT5.
+- Společný textový report: Top 10 výprodej, Top 10 forced-selling proxy, Top 10 možné obraty/vyčerpání, Top 10 pokračující pokles.
+- Žádná akce neotevírá obchody nebo nevytváří BUY/SHORT příkazy.
+
+### Postup nasazení a ověření
+
+1. Spusť na Windows svůj již používaný **Deploy-StockTool.bat v3**. Ten stáhne GitHub \`site/\` do \`/stocktool.eu/www/test/\` na FORPSI, bez přepsání soukromých MT5 dat.
+2. Otevři https://www.stocktool.eu/test/market-pressure/ a v případě potřeby obnov \`Ctrl+F5\`.
+3. Pokud platí StockTool relace z Data Manageru/BUY/SHORT, není potřeba klíč ani klikání; skener sám projde všechny dostupné D1 tickery. Jinak se přihlas pouze jednou.
+4. Prověř filtry, detail, graf a TXT export. Pokud jsou všechny žebříčky prázdné, otevři filtr **Všechny**, zkontroluj aktuálnost posledních D1 svíček a dostupnost historie.
+
+**Testování:** Syntetické offline PHP testy: \`php tests/market_pressure_rules_test.php\`. Ke spouštění není potřeba API klíč, MT5 ani internet. Po nasazení do FORPSI je nutné ověřit skutečné výsledky na brokerových datech. V0.1 nebyly ověřeny výsledky historického backtestu; slibovat jejich úspěšnost by bylo zavádějící.
