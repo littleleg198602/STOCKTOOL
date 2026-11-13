@@ -254,3 +254,70 @@ Pokud tick volume chybí nebo je nula, poměr aktivity se vrací jako \`null\` a
 4. Prověř filtry, detail, graf a TXT export. Pokud jsou všechny žebříčky prázdné, otevři filtr **Všechny**, zkontroluj aktuálnost posledních D1 svíček a dostupnost historie.
 
 **Testování:** Syntetické offline PHP testy: \`php tests/market_pressure_rules_test.php\`. Ke spouštění není potřeba API klíč, MT5 ani internet. Po nasazení do FORPSI je nutné ověřit skutečné výsledky na brokerových datech. V0.1 nebyly ověřeny výsledky historického backtestu; slibovat jejich úspěšnost by bylo zavádějící.
+
+
+---
+
+## Backtesting Engine v0.1 – aplikace 05 (historická validace skenerů)
+
+**Po nasazení:** https://www.stocktool.eu/test/backtesting/
+
+**Architektura:** Čistá webová aplikace na FORPSI nad privátními D1 soubory z MT5 Data Manageru. Používá již fungující StockTool přihlášení, nepotřebuje žádný další CSV/EA/MT5 exportér, nemění žádnou databázi a neposílá obchodní příkazy.
+
+### Soubory
+
+- \`site/backtesting/index.html\` – parametry, srovnání strategií, výsledky, grafy a jednotlivé obchody.
+- \`site/backtesting/styles.css\` – plně responzivní design.
+- \`site/backtesting/app.js\` – dávkování, stop, win-rate/profit-factor, syntetický DD, filtrování, CSV/TXT, kopírování tickerů MT5.
+- \`site/backtesting/api/run.php\` – autentizovaný read-only API, zpracování v dávkách 4 soubory při ALL / 8 při jedné strategii.
+- \`site/backtesting/api/engine.php\` – serverový historický exekuční model, signály pouze z minulých/aktuálních uzavřených svíček.
+- \`site/buy-scanner/api/buy_rules.php\` – přesně původní BUY funkce extrahované z live BUY skeneru; nyní je sdílí skener i backtest.
+- \`site/short-scanner/api/short_rules.php\` a \`site/market-pressure/api/pressure_rules.php\` – existující nezměněná pravidla ostatních skenerů.
+- \`tests/backtesting_engine_test.php\` – offline testy v PHP, včetně absence look-ahead, nákladů, shody se skenery a obchodních horizontů.
+- \`.github/workflows/backtesting-tests.yml\` – automatická kontrola syntaxe a regresních testů při push.
+
+### Testovatelné strategie (samostatně nebo ALL)
+
+1. BUY Scanner (LONG): jen současné BUY kandidáty \`BREAKOUT\`, \`PULLBACK\`, \`TREND\`.
+2. SHORT Scanner (SHORT): současné \`BREAKDOWN\`, \`FAILED_RALLY\`, \`DOWNTREND\` včetně již používaného veto filtru proti přehnanému riziku.
+3. Market Pressure – obrat LONG: jen jeho historické \`watch_buy\` = REVERSAL/EXHAUSTION.
+4. Market Pressure – pokračování SHORT: jen jeho historické \`watch_down\` = PANIC / FORCED_PROXY / CONTINUATION.
+
+Pro historický den **i** se na serveru předá skeneru pouze pole \`bars[0..i]\`. Nezpřístupní se mu následující ceny ani pozdější volatilita. Pro historický výpočet se čas simulace nastaví na datum poslední známé uzavřené svíčky; aktuální desetidenní filtr čerstvosti tak nevyřazuje starší historické signály. Historická data mohou být zastaralá vůči dnešku; web je označí, ale nevymaže.
+
+### Výslovný exekuční model a náklady
+
+- Signál vzniká **po dokončení** svíčky \`i\` na základě tehdy známé historie.
+- Obchod se otevírá na \`Open(i+1)\`, tedy až v další dostupné D1 svíčce.
+- Při horizontu \`H\` uzavírá na \`Open(i+1+H)\`. Horizonty jsou pevně 1 / 5 / 10 / 20 / 60 obchodních D1 svíček (ne kalendářní dny). Všechny budoucí vstupy/výstupy jsou vyhodnoceny **až zpětně**.
+- Jedna otevřená pozice maximálně pro daný symbol + strategii + horizont. Překryvné signály se přeskočí, žádné dokupování ani zdvojnásobování shortů.
+- Nelze-li historický obchod plně uzavřít na existující svíčce, **nesmí** se počítat za výhru, prohru ani jako mark-to-market.
+- \`spread\` je **celý** bid-ask spread v bps; polovina se promítá do vstupního a polovina do výstupního open. \`slippage\` na každém obchodu oboustranně; \`commission\` v bps za každou stranu. Náklady jsou modelované, nikoliv skutečný brokerův historický spread.
+- LONG a SHORT mají opačné směry P/L. SHORT neobsahuje borrow fee, financování, margin, omezení shortability ani případné nucené uzavření pozice.
+
+K dispozici je přepínání strategie a horizontu, srovnání 4×5 kombinací, rozpad po akciích, stránkovaný seznam konkrétních obchodů a **CSV celé historie uzavřených obchodů**. TXT obsahuje všechny výsledky a tickery ve formátu jedné řádky pro MT5.
+
+### Přesná interpretace statistik
+
+- **Win-rate** = podíl uzavřených obchodů s \`net_pct > 0\`.
+- **Průměr a medián** = průměr/medián čistých % výnosů jednotlivých obchodů; každý obchod má v těchto číslech stejnou váhu.
+- **Profit factor** = součet kladných čistých % / absolutní součet záporných čistých %. Pokud nejsou žádné ztráty, API/UI vrací \`—\` (nedostatek dat), ne automaticky nekonečno.
+- **Max DD a graf** = syntetický index 100, kde se obchody uzavřené ve stejný den nejprve průměrují a následně skládají po dnech uzavření. Jde o ilustrativní **closed-trade event křivku**, nikoli live portfolio, skutečný kapitál, průběžný nerealizovaný zisk/ztrátu ani běžný portfolio drawdown! Nesmí se interpretovat jako skutečný maximální drawdown obchodního účtu.
+- Do výpočtů nevstupují delistované nebo jinak nepřítomné akcie = **survivorship bias**, ani dividendy/splity bez ověřených upravených dat, takže absolutní výnosy mohou být zkreslené. Při ~300 D1 je počet historických signálů výrazně omezen, zejména pro strategii vyžadující 210 D1 warm-up a držení 60 D1.
+
+### Dávkování / sdílený FORPSI hosting
+
+Browser zpracuje postupně všechna D1 data ve více krátkých API požadavcích; nikdy nejediným PHP requestem na 685 × 4 × 5 testů. V režimu ALL jsou 4 soubory na batch, v režimu jednoho skeneru 8. Všechny horiony jednoho symbolu/strategie používají **jeden průchod historickými signály**. Je zde tlačítko **Zastavit výpočet**; nedokončený výsledek je zřetelně označen jako částečný a export úplného reportu je vypnutý.
+
+**Poznámka:** režim ALL je výpočetně náročný i po dávkování; pro první ověření doporučujeme jednu strategii (BUY, 5 D1) a pak všechny. Aktualizace synchronizátoru MT5 ani nový API klíč nejsou potřeba.
+
+### První nasazení a kontrola
+
+1. Spusť svůj stávající **Deploy-StockTool.bat v3** a nahraj \`site/\` z GitHubu do \`/stocktool.eu/www/test/\`.
+2. Otevři https://www.stocktool.eu/test/backtesting/ a obnov případně \`Ctrl+F5\`.
+3. Vyber nejdřív BUY, horizont 5 D1 a třeba komise 1 / spread 5 / slippage 2 bps; spusť a zkontroluj počet výsledků i jednotlivé transakce.
+4. Poté zkus ALL s horizonty 5 / 10 / 20 D1. Srovnej, zda jsou výnosy netto vždy nižší než gross (u stejných obchodů a kladných nákladů).
+5. Při nulovém počtu obchodů ověř historii vybrané strategie a délku požadovaného horizontu – 60 D1 vyžaduje minimálně 271 dostupných svíček i pro jediný BUY/SHORT signál.
+
+**Testy:** příkaz \`php tests/backtesting_engine_test.php\` na lokálním PC/CI. GitHub Actions automaticky zkontroluje PHP lint a JS \`node --check\`. Samotný reálný běh na FORPSI nad brokerovým datasety je potřeba ověřit po nasazení – ve vývojovém repozitáři nejsou osobní serverová data.
+
