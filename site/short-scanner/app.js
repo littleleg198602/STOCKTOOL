@@ -137,6 +137,7 @@
       $("rescan-button").disabled=true;
       $("copy-tickers").disabled=true;
       $("export-txt").disabled=true;
+    $("export-all").disabled=true;
       $("detail-symbol").textContent="Vyber akcii";
       $("detail-subtitle").textContent="Pro detail se nejdřív přihlas a spusť skener.";
       $("detail-setup").textContent="Nepřihlášeno";
@@ -191,6 +192,7 @@
     $("rescan-button").disabled=true;
     $("copy-tickers").disabled=true;
     $("export-txt").disabled=true;
+    $("export-all").disabled=true;
     status("Propojuji SHORT Scanner se StockTool API…");
     updateStats();renderTable();
     let done=0,total=1,failedFiles=0;
@@ -215,6 +217,7 @@
       updateStats();renderTable();
       $("copy-tickers").disabled=false;
       $("export-txt").disabled=false;
+      $("export-all").disabled=false;
       const best=filteredResults()[0];
       if(best)selectSymbol(best.symbol);
       notify("SHORT screening dokončen: "+nf.format(results.filter(x=>x.candidate).length)+" technických kandidátů.");
@@ -485,6 +488,53 @@
     notify("TXT výstup připraven: "+items.length+" titulů.");
   }
 
+  function exportAll() {
+    if(!scanComplete)return notify("Nejdřív dokonči všechny dávky screeningu.",true);
+    const main=results.filter(r=>r.candidate).sort((a,b)=>
+      (PRIORITY[a.setup]??99)-(PRIORITY[b.setup]??99) ||
+      (a.ret20_pct??1e10)-(b.ret20_pct??1e10) ||
+      a.symbol.localeCompare(b.symbol)).slice(0,10);
+    const risky=results.filter(r=>r.risk).sort((a,b)=>
+      (b.risk_flags?.length||0)-(a.risk_flags?.length||0) ||
+      (b.atr_pct??0)-(a.atr_pct??0) ||
+      a.symbol.localeCompare(b.symbol)).slice(0,5);
+    const avoidOrder={AVOID:0,STALE:1,INSUFFICIENT:2,NONE:3,WATCH:4};
+    const avoid=results.filter(r=>r.avoid).sort((a,b)=>
+      (avoidOrder[a.setup]??5)-(avoidOrder[b.setup]??5) ||
+      (b.risk_flags?.length||0)-(a.risk_flags?.length||0) ||
+      a.symbol.localeCompare(b.symbol)).slice(0,5);
+    const sections=[["TOP 10 SHORT",main],["TOP 5 RIZIKOVE",risky],["TOP 5 NEBRAT",avoid]];
+    const lines=[
+      "STOCKTOOL SHORT SCANNER v0.1 | souhrn 10/5/5",
+      "Vygenerovano: "+new Date().toISOString(),
+      "Zdroj: MT5 D1 | Technicky screening, zadny obchodni pokyn",
+      "Pozor: borrow fee, moznost shortovani a riziko gapu neoverene.",
+      "Prozkoumano: "+results.length+" D1 datasetu.",
+      ""
+    ];
+    for(const [heading,items] of sections) {
+      lines.push("===== "+heading+" =====");
+      lines.push("TICKERY PRO MT5: "+(items.length?items.map(x=>x.symbol).join(","):"ZADNE"));
+      lines.push("");
+      for(let i=0;i<items.length;i++){
+        const r=items[i];
+        lines.push((i+1)+". "+r.symbol+" | "+(LABELS[r.setup]||r.setup)+
+          " | Close "+price(r.close)+" | RSI "+format(r.rsi14)+
+          " | 20D "+format(r.ret20_pct,"%")+" | ATR "+format(r.atr_pct,"%")+
+          " | Posledni D1 "+utc(r.last_time));
+        for(const reason of r.reasons||[])lines.push("  - "+reason);
+      }
+      lines.push("");
+    }
+    const blob=new Blob(["\uFEFF"+lines.join("\r\n")+"\r\n"],{type:"text/plain;charset=utf-8"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;a.download="StockTool_SHORT_10-5-5_"+new Date().toISOString().slice(0,10)+".txt";
+    document.body.append(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),3000);
+    notify("Souhrn Top 10 / 5 / 5 byl připraven.");
+  }
+
   function bind() {
     $("year").textContent=String(new Date().getFullYear());
     $("scan-button").addEventListener("click",runScan);
@@ -513,6 +563,7 @@
     $("next-page").addEventListener("click",()=>{page++;renderTable();});
     $("copy-tickers").addEventListener("click",copyTickers);
     $("export-txt").addEventListener("click",exportText);
+    $("export-all").addEventListener("click",exportAll);
     if("ResizeObserver" in window){
       new ResizeObserver(drawChart).observe(document.querySelector(".detail-chart"));
     } else window.addEventListener("resize",drawChart);
