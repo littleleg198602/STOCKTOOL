@@ -67,6 +67,9 @@ $shortHistory=bt_fixture(235);
 $r=bt_analyze_dataset($shortHistory,['BUY'],[60],$zero,time());
 bt_assert($r['groups'][0]['status']==='too_short'&&$r['groups'][0]['required']===271,
     '210 candle warm-up + next open + 60D holding requires 271 bars');
+$mixed=bt_analyze_dataset($shortHistory,['BUY'],[5,60],$zero,time());
+bt_assert($mixed['groups'][0]['status']==='ok'&&$mixed['groups'][1]['status']==='too_short',
+    'History coverage is evaluated separately for each selected horizon');
 
 $signalIndex=270;
 $known=array_slice($bars,0,$signalIndex+1);
