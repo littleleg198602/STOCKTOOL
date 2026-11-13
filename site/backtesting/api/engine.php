@@ -119,8 +119,10 @@ function bt_evaluate(array $bars,string $symbol,string $strategy,
                      array $horizons,array $costs): array {
     $n=count($bars);
     $min=bt_min_history($strategy);
-    $minimumHorizon=min($horizons);
-    $lastSignalIndex=$n-$minimumHorizon-2;
+    // Evaluate ALL historical signal dates, including the most recent D1.
+    // A recent signal without a future exit is counted as "unclosed",
+    // never as a winning or losing trade.
+    $lastSignalIndex=$n-1;
     $signals=[];
     for($i=$min-1; $i<=$lastSignalIndex; $i++) {
         $known=array_slice($bars,0,$i+1);
