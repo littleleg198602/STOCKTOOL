@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0c1421">
+  <meta name="description" content="StockTool Backtesting Engine – historické testy BUY, SHORT a Market Pressure z uložených denních svíček MT5.">
+  <title>Backtesting Engine | StockTool.eu</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <link rel="stylesheet" href="./styles.css?v=bt1">
+  <script defer src="./app.js?v=bt1"></script>
+</head>
+<body>
+  <a class="skip-link" href="#backtest">Přejít na Backtesting Engine</a>
+  <header class="header">
+    <div class="wrap header-inner">
+      <a class="brand" href="../" aria-label="StockTool – hlavní stránka">
+        <span class="brand-icon" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none"><path d="M5 24V9m0 15h23M10 19l5-6 4 4 7-10M22 7h4v4" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span><span>STOCK<span>TOOL</span><small>.EU</small></span>
+      </a>
+      <div class="header-right">
+        <span class="section-breadcrumb">/ STRATEGY LAB</span>
+        <span class="beta-badge">BACKTEST BETA 0.1</span>
+        <a class="back nav-extra" href="../buy-scanner/">BUY</a>
+        <a class="back nav-extra" href="../short-scanner/">SHORT</a>
+        <a class="back nav-extra" href="../market-pressure/">PRESSURE</a>
+        <a class="back" href="../">← Platforma</a>
+      </div>
+    </div>
+  </header>
+  <main class="wrap" id="backtest">
+    <section class="hero">
+      <div class="hero-text">
+        <div class="eyebrow"><i class="live-dot"></i> STOCKTOOL / STRATEGY RESEARCH</div>
+        <h1>Backtesting <span>Engine.</span></h1>
+        <p>Ověř, co se historicky stalo po našich BUY, SHORT a Market Pressure signálech. Místo odhadů dostaneš obchody, náklady, výnosy, úspěšnost a průběh výsledků.</p>
+      </div>
+      <div class="data-source"><span>VÝPOČETNÍ MODEL</span><strong>MT5 D1 → D1 open</strong><small>Bez použití budoucích svíček při signálu</small></div>
+    </section>
+    <section class="notice">
+      <span class="notice-icon">i</span>
+      <p><strong>Výzkumný backtest, nikoliv obchodní simulátor účtu.</strong> Výsledky používají uložené OHLCV svíčky aktuálně dostupných titulů (riziko survivorship bias). Neobsahují dividendy, úpravy corporate actions, skutečný intradenní spread, financování SHORT pozic, borrow fee, margin ani market impact. Křivka vývoje je pouze syntetická posloupnost realizovaných obchodů – <strong>není to výkonnost obchodovatelného portfolia</strong>.</p>
+    </section>
+
+    <section class="panel engine-controls" aria-label="Nastavení backtestu">
+      <div class="control-head">
+        <div><div class="micro-title">01 / PARAMETRY TESTU</div><h2>Nastav strategii a horizont</h2><p>Zpracování probíhá po malých dávkách na FORPSI. Zpětný test nemění žádná data v MT5.</p></div>
+        <div class="auth-controls">
+          <div id="login-controls">
+            <label for="api-key">API klíč – pouze pokud ještě nejsi přihlášený</label>
+            <div class="password-row"><input id="api-key" type="password" autocomplete="off" placeholder="Stávající StockTool klíč"><button id="show-key" type="button" aria-label="Ukázat nebo skrýt API klíč">◉</button></div>
+          </div>
+          <div id="connection-state" class="connection-state" role="status">Ověřuji společné přihlášení StockTool…</div>
+        </div>
+      </div>
+
+      <div class="configuration">
+        <div class="control-box">
+          <label for="strategy">Analytická strategie</label>
+          <select id="strategy">
+            <option value="ALL">Všechny čtyři – porovnání</option>
+            <option value="BUY">BUY Scanner – LONG</option>
+            <option value="SHORT">SHORT Scanner – SHORT</option>
+            <option value="PRESSURE_REVERSAL">Market Pressure – obrat (LONG)</option>
+            <option value="PRESSURE_CONTINUATION">Market Pressure – pokračování (SHORT)</option>
+          </select>
+          <small>Originální pravidla aktuálních skenerů, žádný jiný algoritmus.</small>
+        </div>
+        <fieldset class="control-box horizon-box">
+          <legend>Doba držení (obchodní D1 svíčky)</legend>
+          <div class="horizon-grid">
+            <label><input type="checkbox" name="horizon" value="1"> 1 D</label>
+            <label><input type="checkbox" name="horizon" value="5" checked> 5 D</label>
+            <label><input type="checkbox" name="horizon" value="10" checked> 10 D</label>
+            <label><input type="checkbox" name="horizon" value="20" checked> 20 D</label>
+            <label><input type="checkbox" name="horizon" value="60"> 60 D</label>
+          </div>
+          <small>Po signálu vstup na následujícím open; výstup na open po N dalších D1.</small>
+        </fieldset>
+        <div class="control-box cost-box">
+          <span class="form-title">Náklady – v bazických bodech (bps)</span>
+          <div class="cost-grid">
+            <label>Komise / strana <input id="commission" type="number" min="0" max="99" step="0.1" value="1" inputmode="decimal"></label>
+            <label>Celý spread <input id="spread" type="number" min="0" max="99" step="0.1" value="5" inputmode="decimal"></label>
+            <label>Slippage / strana <input id="slippage" type="number" min="0" max="99" step="0.1" value="2" inputmode="decimal"></label>
+          </div>
+          <small>100 bps = 1 %. Komise i slippage oběma směry, polovinu spreadu platíme při každém obchodu.</small>
+        </div>
+      </div>
+      <div class="engine-actions">
+        <button class="btn btn-primary" id="scan-button" type="button">Spustit backtest <span>↗</span></button>
+        <button class="btn btn-outline" id="stop-button" type="button" disabled>Zastavit výpočet</button>
+        <button class="btn btn-outline" id="logout-button" type="button" disabled>Odhlásit</button>
+        <span id="run-status" role="status">Zatím bez výsledků.</span>
+      </div>
+      <div class="progress-row" aria-live="polite">
+        <span id="progress-label">Čeká na spuštění.</span>
+        <div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+        <span id="progress-number">0 %</span>
+      </div>
+    </section>
+
+    <section class="stats" aria-label="Souhrn výsledků">
+      <div class="stat-card"><span>Analyzované akcie</span><strong id="stat-symbols">—</strong><small id="coverage-note">Zatím bez dat</small></div>
+      <div class="stat-card"><span>Uzavřené obchody</span><strong id="stat-trades">—</strong><small>Pro vybraný scénář</small></div>
+      <div class="stat-card primary-stat"><span>Úspěšnost</span><strong id="stat-winrate">—</strong><small>Netto po nákladech</small></div>
+      <div class="stat-card"><span>Průměr / obchod</span><strong id="stat-avg">—</strong><small>Netto výnos v %</small></div>
+      <div class="stat-card"><span>Profit factor</span><strong id="stat-pf">—</strong><small>Netto zisky / netto ztráty</small></div>
+      <div class="stat-card"><span>Drawdown křivky</span><strong id="stat-dd">—</strong><small>Syntetická křivka, nikoliv portfolio</small></div>
+    </section>
+
+    <section class="panel results-panel summary-panel">
+      <div class="results-head">
+        <div><div class="micro-title">02 / SROVNÁNÍ STRATEGIÍ</div><h2>Výsledky podle horizontu</h2></div>
+        <div class="toolbar-buttons">
+          <button class="btn btn-outline" id="export-report" type="button" disabled>↓ TXT report</button>
+          <button class="btn btn-outline" id="export-csv" type="button" disabled>↓ CSV obchody</button>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="summary-table">
+          <thead><tr><th>Strategie</th><th>Horizont</th><th>Obchody</th><th>Akcie</th><th>Win rate</th><th>Průměr netto</th><th>Profit factor</th><th>Max DD*</th></tr></thead>
+          <tbody id="summary-body"><tr><td colspan="8" class="empty-cell">Spusť backtest a výsledky se zobrazí zde.</td></tr></tbody>
+        </table>
+      </div>
+      <p id="summary-note" class="summary-note">* Max DD je z uměle sestavené křivky podle data uzavření. Nezahrnuje otevřené pozice ani skutečný kapitál.</p>
+    </section>
+
+    <section class="workspace">
+      <div class="panel graph-panel">
+        <div class="results-head">
+          <div><div class="micro-title">03 / DETAIL SCÉNÁŘE</div><h2>Vývoj výsledků</h2></div>
+          <div class="scenario-selectors">
+            <label>Strategie <select id="result-strategy" disabled><option>—</option></select></label>
+            <label>Horizont <select id="result-horizon" disabled><option>—</option></select></label>
+          </div>
+        </div>
+        <div class="equity-chart">
+          <canvas id="equity-chart" role="img" aria-label="Syntetická křivka kumulovaných realizovaných obchodů"></canvas>
+          <div class="chart-empty" id="chart-empty">Po dokončení analýzy zde uvidíš syntetický průběh uzavřených obchodů.</div>
+        </div>
+        <div class="chart-footnote"><span>Start 100 · stejně vážené netto výstupy uzavřené ve stejný den</span><span id="chart-period">Bez dat</span></div>
+        <div class="mini-metrics">
+          <div><span>Medián obchodu</span><strong id="metric-median">—</strong></div>
+          <div><span>Nejlepší</span><strong id="metric-best">—</strong></div>
+          <div><span>Nejhorší</span><strong id="metric-worst">—</strong></div>
+          <div><span>Signály bez výstupu</span><strong id="metric-unclosed">—</strong></div>
+        </div>
+      </div>
+      <aside class="panel research-panel">
+        <div class="micro-title">AUDIT / OMEZENÍ</div>
+        <h2>Co výsledek skutečně znamená?</h2>
+        <ul class="research-notes">
+          <li>Signál počítáme až po uzavření D1 svíčky, bez budoucích cen a bez použití jejího dalšího dne.</li>
+          <li>Vstup = open další obchodní D1. Výstup = open po zvoleném počtu dalších dokončených svíček.</li>
+          <li>U jednoho tickeru a strategie nepřekrýváme obchody. Signály bez dostupného výstupu nepovažujeme za výhru ani prohru.</li>
+          <li>Pro BUY a SHORT potřebujeme 210+ svíček; Market Pressure používá 80+. Při 300 D1 je dlouhý horizont statisticky velmi omezený.</li>
+          <li>Drawdown křivky, souhrnný profit factor a výnosy nejsou skutečná výkonnost kapitálově řízeného portfolia.</li>
+          <li>Chybí delistované akcie, corporate actions, dividendy, reálné historické spready a u shortů borrow fee.</li>
+        </ul>
+        <p class="risk-warning" id="risk-warning">Výsledky jsou orientační. Vzorek s malým počtem uzavřených obchodů není dostatečný důkaz výhody strategie.</p>
+      </aside>
+    </section>
+
+    <section class="panel results-panel lower-panel">
+      <div class="results-head">
+        <div><div class="micro-title">04 / ROZPAD PODLE INSTRUMENTU</div><h2>Výsledky jednotlivých akcií</h2></div>
+        <div class="filter-controls">
+          <label class="search-field"><span class="sr-only">Filtrovat ticker</span><input type="search" id="ticker-search" placeholder="Hledat ticker…" autocomplete="off"></label>
+          <label><select id="symbol-sort"><option value="trades">Nejvíce obchodů</option><option value="avg">Nejvyšší průměr</option><option value="winrate">Nejvyšší win rate</option><option value="ticker">Ticker A–Z</option></select></label>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table><thead><tr><th>Ticker</th><th>Obchody</th><th>Win rate</th><th>Průměr netto</th><th>Nejlepší</th><th>Nejhorší</th><th>Poslední výstup</th></tr></thead>
+          <tbody id="symbols-body"><tr><td colspan="7" class="empty-cell">Zatím nejsou k dispozici obchody.</td></tr></tbody>
+        </table>
+      </div>
+      <div class="table-foot"><span id="symbols-count">—</span><div class="pager"><button id="symbols-prev" type="button" disabled>←</button><span id="symbols-page">—</span><button id="symbols-next" type="button" disabled>→</button></div></div>
+    </section>
+
+    <section class="panel results-panel lower-panel">
+      <div class="results-head">
+        <div><div class="micro-title">05 / TRANSAKČNÍ LOG</div><h2>Historické obchody</h2></div>
+        <span class="small-hint">Vzorek pro zvolený scénář · všechno lze exportovat do CSV</span>
+      </div>
+      <div class="table-scroll">
+        <table><thead><tr><th>Akcie</th><th>Signál</th><th>Vstup (open)</th><th>Výstup (open)</th><th>D1</th><th>Gross</th><th>Netto</th><th>Formace</th></tr></thead>
+          <tbody id="trades-body"><tr><td colspan="8" class="empty-cell">Bez uzavřených obchodů.</td></tr></tbody>
+        </table>
+      </div>
+      <div class="table-foot"><span id="trades-count">—</span><div class="pager"><button id="trades-prev" type="button" disabled>←</button><span id="trades-page">—</span><button id="trades-next" type="button" disabled>→</button></div></div>
+    </section>
+
+    <section class="panel rules">
+      <div class="micro-title">METODIKA / V0.1</div><h2>Kontrolovatelný model bez look-ahead</h2>
+      <div class="rules-grid">
+        <div><span class="rule-dot"></span><strong>Signál při close</strong><p>Analytické pravidlo vidí jen tehdy uzavřené svíčky, nikoli další budoucí pohyb.</p></div>
+        <div><span class="rule-dot"></span><strong>Vstup další open</strong><p>Žádné nereálné naplnění za cenu, kterou signalizovala právě uzavřená svíčka.</p></div>
+        <div><span class="rule-dot"></span><strong>Náklady v bps</strong><p>Modelovaný spread, slippage i komise na obou koncích obchodu.</p></div>
+        <div><span class="rule-dot"></span><strong>Statistická opatrnost</strong><p>Počet pozorování, chybějící historie, přeživší akcie a překryvy rozhodují o spolehlivosti.</p></div>
+      </div>
+    </section>
+  </main>
+  <footer class="wrap footer"><span>© <span id="year">2026</span> StockTool.eu · Backtesting Engine BETA</span><span>Výzkumný nástroj · Bez skutečných obchodních příkazů</span></footer>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
