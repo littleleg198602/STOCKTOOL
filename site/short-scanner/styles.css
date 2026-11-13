@@ -1,0 +1,57 @@
+@import url("../buy-scanner/styles.css?v=auth2");
+
+/* SHORT Scanner uses shared StockTool responsive layout, with its own theme. */
+:root {
+  --bg:#10121e;
+  --panel:#171d30;
+  --panel2:#242a3e;
+  --line:#3d405c;
+  --text:#f4edf1;
+  --muted:#baa8b8;
+  --mint:#ff929f;
+  --blue:#9eb9ff;
+  --yellow:#f6c17c;
+  --red:#ff929f;
+}
+body {
+  background:radial-gradient(ellipse 640px 560px at 81% 0%,#632c4a45,transparent),
+    radial-gradient(ellipse 420px 490px at 12% 42%,#17284438,transparent),#10121e;
+}
+.header {background:#131727f2;border-color:#39374b}
+.brand-icon {background:#462832;border-color:#815264}
+.hero h1 span {color:#ff899b}
+.live-dot {background:#f992a1;box-shadow:0 0 0 4px #ff92a123}
+.data-source {background:#2c2133;border-color:#67445a}
+.data-source strong {color:#ffe2e8}
+.data-source>span {color:#e7aabb}
+.data-source small {color:#bda3b1}
+.notice {background:#291f30;border-color:#64495b}
+.notice-icon {background:#603746;color:#ffd5df}
+.notice strong {color:#ffe1e9}
+.btn-primary {color:#27121c;background:#ff95a3}
+.btn-primary:hover {background:#ffbdc7}
+.stat-card.primary-stat {background:linear-gradient(140deg,#3c2338,#1c283e);border-color:#80566a}
+.stat-card.primary-stat strong {color:#ffa2b0}
+.progress-bar {background:linear-gradient(90deg,#bd5975,#ffa3b1)}
+.chip.active {background:#ffa5b2;border-color:#ffbcc8;color:#29121a}
+.ticker-button {color:#ffe2e6!important;text-decoration-color:#bd758b!important}
+.positive {color:#64ddbd!important}
+.negative {color:#ff9da9!important}
+.setup-chip.breakdown,.setup-pill.breakdown {background:#4f2734;border-color:#b66c7f;color:#ffb5bf}
+.setup-chip.failed_rally,.setup-pill.failed_rally {background:#313253;border-color:#7979bf;color:#b8b5ff}
+.setup-chip.downtrend,.setup-pill.downtrend {background:#403129;border-color:#9f7855;color:#ffd3a1}
+.setup-chip.avoid,.setup-pill.avoid {background:#51242e;border-color:#d17e8e;color:#ffbfca}
+.setup-chip.stale,.setup-pill.stale {background:#3a3145;border-color:#78648d;color:#d7c6ea}
+.setup-chip.watch,.setup-pill.watch {background:#303848;border-color:#566a82;color:#c7d6e8}
+.data-manager-link {color:#ffc3cd}
+.reason-list li::marker {color:#ffa3b1}
+#detail-risks {padding-top:6px;border-top:1px solid #604456;line-height:1.8}
+#detail-risks li::marker {color:#ff949d}
+#login-controls[hidden] {display:none!important}
+.table-scroll table {min-width:840px}
+#logout-button {font-size:11px}
+.action-row{flex-wrap:wrap}
+@media(max-width:520px){
+  .action-row .btn {flex:1}
+  #logout-button {flex:0 0 auto}
+}
