@@ -1,5 +1,12 @@
 # StockTool.eu — vývoj analytické platformy
 
+## JOHNY: výpočty přes GitHub Actions
+
+Připravené propojení používá původní Python jádro JOHNY, seznam a D1 svíčky
+z Data Manageru a výsledky zobrazuje v `site/johny/`. Historie i model se ukládají
+na soukromé místo na FORPSI. Aktivace vyžaduje nasazení nových endpointů a Actions
+secret `STOCKTOOL_API_KEY`. [Postup aktivace a rozsah první verze](docs/JOHNY_GITHUB_ACTIONS.md).
+
 Testovací web: **https://www.stocktool.eu/test/**  
 Data Manager: **https://www.stocktool.eu/test/data-manager/**
 

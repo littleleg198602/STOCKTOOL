@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#09111f">
+  <title>JOHNY | StockTool</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/styles.css">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#obsah">Přejít na výsledky</a>
+  <header class="site-header"><div class="container nav-shell">
+    <a class="logo" href="../">STOCK<span>TOOL</span><small>.EU</small></a>
+    <nav class="main-nav" aria-label="Navigace"><a href="../data-manager/">Data Manager</a><a href="../">Všechny aplikace</a></nav>
+  </div></header>
+  <main class="container score-main" id="obsah">
+    <div class="score-heading"><div><div class="eyebrow">ANALÝZA AKCIÍ · JOHNY</div>
+      <h1>Skóre. Souvislosti. <span>Historie.</span></h1>
+      <p>Výsledky analýzy akcií ze společného Data Manageru. Každý výpočet uchovává historii a stav učení.</p>
+    </div><a class="button button-secondary" href="https://github.com/littleleg198602/STOCKTOOL/actions/workflows/johny-score.yml" target="_blank" rel="noopener noreferrer">Spustit výpočet na GitHubu ↗</a></div>
+    <form class="score-panel" id="login-form" hidden>
+      <label for="api-key">Přihlášení ke StockToolu</label>
+      <p>Použij stejný přístupový klíč jako pro Data Manager. Přihlášení platí pro aplikace StockToolu.</p>
+      <input id="api-key" type="password" autocomplete="off" required placeholder="Přístupový klíč">
+      <button class="button button-primary" type="submit">Přihlásit se</button>
+    </form>
+    <div class="score-toolbar"><p id="status" role="status" aria-live="polite">Načítám výsledky…</p><button class="button button-secondary" id="reload" type="button">Obnovit výsledky</button></div>
+    <section id="results" hidden>
+      <div class="score-metrics" id="metrics"></div>
+      <details class="score-panel" id="warnings" hidden><summary>Upozornění ke kvalitě dat</summary><ul id="warning-list"></ul></details>
+      <div class="score-tabs" role="group" aria-label="Zobrazení výsledků">
+        <button type="button" data-view="signals" aria-pressed="true">Signály</button>
+        <button type="button" data-view="buy" aria-pressed="false">BUY analýza</button>
+        <button type="button" data-view="articles" aria-pressed="false">Zprávy</button>
+        <button type="button" data-view="learning" aria-pressed="false">Učení</button>
+        <button type="button" data-view="history" aria-pressed="false">Historie běhů</button>
+      </div>
+      <div class="score-toolbar" id="filters"><label>Vyhledat akcii <input id="search" type="search" placeholder="Např. AAPL"></label>
+        <label>Akce <select id="action"><option value="">Všechny</option><option>BUY</option><option>SELL</option><option>NO_TRADE</option></select></label>
+        <button class="button button-secondary" type="button" id="export">Stáhnout CSV</button>
+      </div>
+      <p id="table-caption"></p>
+      <div class="score-table"><table><caption class="sr-only">Výsledky zvolené analýzy</caption><thead id="table-head"></thead><tbody id="table-body"></tbody></table></div>
+      <section class="score-panel" id="learning" hidden><h2>Stav učení</h2><p id="learning-status"></p><dl id="learning-values"></dl>
+        <p>Model se použije až po splnění kontrol původního programu. Potřebuje dostatek historických pozorování, známých výsledků a ověřených cen upravených o splity a dividendy. Nově přijatý model se uplatní v následujícím výpočtu.</p>
+      </section>
+      <section class="score-panel" id="detail" hidden><h2 id="detail-title"></h2><p id="detail-summary"></p><dl id="detail-values"></dl><ul id="detail-reasons"></ul></section>
+    </section>
+    <p class="score-footnote">Výsledky vždy odpovídají času posledního dokončeného běhu. Dostupnost fundamentů a zpráv závisí na naplnění příslušných zdrojů.</p>
+  </main>
+</body>
+</html>

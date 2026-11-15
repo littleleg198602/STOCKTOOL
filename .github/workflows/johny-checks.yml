@@ -1,0 +1,34 @@
+name: JOHNY - checks
+
+on:
+  pull_request:
+    paths: ['market_checker_app/**', 'scripts/stocktool_score.py', 'site/johny/**', 'requirements-score.txt', '.github/workflows/johny-*.yml']
+  push:
+    paths: ['market_checker_app/**', 'scripts/stocktool_score.py', 'site/johny/**', 'requirements-score.txt', '.github/workflows/johny-*.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: none
+          coverage: none
+      - name: Python syntax only
+        run: |
+          python -m compileall -q market_checker_app scripts/stocktool_score.py
+      - name: PHP and browser JavaScript syntax only
+        run: |
+          for file in site/johny/api/*.php; do php -l "$file"; done
+          node --check site/johny/app.js
+      # Functional verification belongs to the user; do not execute analysis tests.
