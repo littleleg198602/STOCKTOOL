@@ -69,9 +69,12 @@ Databáze a výsledky nejsou GitHub artifacts ani verzované soubory.
 Revize se zatím automaticky nemažou: je nutné sledovat místo na FORPSI a zálohovat
 soukromý adresář. Limity délky běhu a spotřeba Actions závisí na účtu GitHubu.
 
-## Ověření
+## Kontrola kódu a funkční ověření
 
-`python -m unittest discover -s tests -v` zahrnuje původní regresní sadu i nové testy
-externího zdroje a integrace PHP. PHP integrační testy vyžadují PHP CLI; bez něj se
-lokálně přeskočí, ale workflow `JOHNY - checks` je vyžaduje. CI kontroluje také syntax
-PHP/JavaScriptu. Testy nevyžadují živý StockTool, Yahoo ani skutečné tajné hodnoty.
+Na výslovné přání uživatele workflow `JOHNY - checks` ověřuje pouze syntaxi
+Pythonu, PHP a JavaScriptu. Nespouští analýzu, trénink, regresní ani HTTP
+integrační testy. Funkčnost analýzy ověří uživatel sám.
+
+Dříve přidané testy zůstávají ve zdrojích pro případné pozdější použití na výslovné
+vyžádání. Workflow `JOHNY - calculate scores` je pouze ručně spouštěný provozní
+výpočet; automatická kontrola kódu ho nevyvolává.
