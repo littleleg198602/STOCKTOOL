@@ -495,7 +495,19 @@ class YahooCacheStore:
                 elif lookup.state == "failed" and lookup.record is not None:
                     if lookup.record.expires_at <= current:
                         refresh.append(ticker)
-        return refresh
+        # A bounded daily batch must not repeatedly refresh the alphabetically
+        # first expired records while other symbols have never had metadata.
+        # Retry eligibility was checked above; prioritize absent data, then the
+        # oldest successful fetch, keeping the input order for equal priorities.
+        def priority(ticker: str) -> tuple[int, datetime]:
+            record = self.get(ticker, now=current).record
+            if record is None:
+                return (0, datetime.min.replace(tzinfo=timezone.utc))
+            if not record.data:
+                return (1, record.updated_at)
+            return (2, record.fetched_at)
+
+        return sorted(refresh, key=priority)
 
     def _lookup_from_row(self, row: sqlite3.Row | None, now: datetime) -> YahooCacheLookup:
         if row is None:

@@ -795,6 +795,10 @@ class PipelineService:
                     history_payloads["SPY"] = benchmark_payload
                 store.save_buy_run(run_id, history_payloads)
             except Exception as exc:
+                # A committed signal row alone is not a complete learning run.
+                # The web worker must retain the previous remote snapshot when
+                # either history write fails, even if save_run already returned.
+                run_id = None
                 message = f"SQLite uložení běhu selhalo: {exc}"
                 warnings.append(message)
                 errors.append(message)
