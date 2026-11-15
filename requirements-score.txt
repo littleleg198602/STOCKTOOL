@@ -1,0 +1,6 @@
+# The original Streamlit UI remains available locally; the batch worker needs no MT5.
+pandas>=2.1,<3
+numpy>=1.26,<3
+yfinance>=0.2.54,<2
+feedparser>=6,<7
+requests>=2.32,<3

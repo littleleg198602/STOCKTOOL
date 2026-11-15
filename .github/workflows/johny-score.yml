@@ -1,0 +1,47 @@
+name: JOHNY - calculate scores
+
+on:
+  workflow_dispatch:
+    inputs:
+      refresh_yahoo:
+        description: 'Maximum Yahoo metadata/adjusted price downloads (0 to 50)'
+        type: choice
+        options: ['0', '10', '25', '50']
+        default: '25'
+      train:
+        description: 'Attempt learning with the original validation gates'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stocktool-johny-state
+  cancel-in-progress: false
+
+jobs:
+  calculate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-score.txt
+      - run: python -m pip install -r requirements-score.txt
+      - name: Calculate and publish to StockTool
+        env:
+          STOCKTOOL_BASE_URL: https://www.stocktool.eu/test
+          STOCKTOOL_API_KEY: ${{ secrets.STOCKTOOL_API_KEY }}
+          STOCKTOOL_RSS_SOURCES: ${{ vars.STOCKTOOL_RSS_SOURCES }}
+          REFRESH_YAHOO: ${{ inputs.refresh_yahoo }}
+          TRAIN_MODEL: ${{ inputs.train }}
+        shell: bash
+        run: |
+          args=(--refresh-yahoo "$REFRESH_YAHOO")
+          if [ "$TRAIN_MODEL" = "true" ]; then args+=(--train); fi
+          python scripts/stocktool_score.py "${args[@]}"
+      # Private SQLite and price history must not be uploaded as public Actions artifacts.
