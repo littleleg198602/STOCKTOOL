@@ -2,9 +2,18 @@ name: Deploy test to FORPSI
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - '.github/workflows/deploy-test.yml'
 
 permissions:
   contents: read
+
+concurrency:
+  group: stocktool-forpsi-deploy
+  cancel-in-progress: false
 
 jobs:
   deploy-test:
@@ -13,6 +22,18 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Set up PHP for syntax checks
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: none
+          coverage: none
+
+      - name: Check website syntax without running analyses
+        run: |
+          for file in site/johny/api/*.php; do php -l "$file"; done
+          node --check site/johny/app.js
 
       - name: Publish test website
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
