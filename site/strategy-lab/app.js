@@ -133,7 +133,7 @@
       takeProfit:Number($("take-profit").value),commission:Number($("commission").value),
       spread:Number($("spread").value),slippage:Number($("slippage").value),
       oos:Number($("oos").value),
-      entry:entryRules,exit:exitRules
+      entry:entryRules,exit:exitRules,symbol:$("symbol").value.trim().toUpperCase()
     });
   }
 
@@ -340,7 +340,7 @@
     try{c=E.config(c);}catch(e){return alertUser(e.message,true);}
     const record={
       id:Date.now()+"_"+Math.random().toString(36).slice(2,8),
-      added:new Date().toISOString(),symbol:dataSymbol||"",
+      added:new Date().toISOString(),symbol:c.symbol||"",
       config:c,
       snapshot:report?{is:report.is,oos:report.oos,trades:report.trades.length}:null
     };
@@ -407,7 +407,7 @@
       let added=0;
       for(const cfg of configs){const valid=E.config(cfg);
         bank.unshift({id:Date.now()+"_"+added+"_"+Math.random().toString(36).slice(2,6),
-          added:new Date().toISOString(),symbol:"",config:valid,snapshot:null});added++;
+          added:new Date().toISOString(),symbol:valid.symbol,config:valid,snapshot:null});added++;
       }
       bank=bank.slice(0,100);persistBank();renderBank();
       alertUser("Importováno "+added+" strategií.");
@@ -510,7 +510,7 @@
     $("save-config").addEventListener("click",()=>{
       try{
         const cfg=getConfig();
-        const snapshot=lastResult&&JSON.stringify(lastResult.config)===JSON.stringify({...cfg,symbol:dataSymbol})?lastResult:null;
+        const snapshot=lastResult&&JSON.stringify(lastResult.config)===JSON.stringify(cfg)?lastResult:null;
         saveToBank(cfg,snapshot);
       }catch(e){alertUser(e.message,true);}
     });
