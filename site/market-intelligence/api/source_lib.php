@@ -57,6 +57,8 @@ function mi_cached(string $key,int $seconds, callable $producer): array {
     return ['items'=>[],'updated_at'=>null,'stale'=>true,'ok'=>false];
 }
 function mi_html(string $text): string {
+    // Fallback RSS parser may encounter CDATA wrappers; never show them to readers.
+    $text=str_replace(['<![CDATA[',']]>'],['',''],$text);
     return trim(html_entity_decode(strip_tags($text),ENT_QUOTES|ENT_HTML5,'UTF-8'));
 }
 function mi_topic(string $title): array {
