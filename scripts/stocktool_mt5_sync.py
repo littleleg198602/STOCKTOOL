@@ -64,7 +64,11 @@ TIMEFRAME_SECONDS = {"M1": 60, "M5": 300, "M15": 900, "M30": 1800,
                      "H1": 3600, "H4": 14400, "D1": 86400, "W1": 604800}
 # Metadata path naming is defined by the broker. This is intentionally conservative.
 STOCK_PATH = re.compile(r"stock|share|equit|equity|acciones|aktie|akcj", re.IGNORECASE)
+MARKET_PATH = re.compile(r"index|indice|indices|forex|currency|currenc|metal|commodity|commodit|energy|crypto|future|futures|fx|cfd|spot", re.IGNORECASE)
 NAME = re.compile(r"^[A-Za-z0-9._:-]{1,30}$")
+MARKET_NAME = re.compile(r"^[A-Za-z0-9._:#@+\\-]{1,40}$")
+# Market wrapper enables extended broker-symbol support for file lists.
+MARKET_SYNC = False
 
 
 def log(line: str) -> None:
@@ -180,11 +184,11 @@ def arguments() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="StockTool – automatická hromadná synchronizace MT5 (bez CSV).")
     mode = p.add_mutually_exclusive_group()
     mode.add_argument("--check-api", action="store_true", help="Zkontroluje HTTPS a API klíč bez připojení MT5.")
-    mode.add_argument("--discover", action="store_true", help="Vypíše detekované akcie u brokera, bez odesílání.")
+    mode.add_argument("--discover", action="store_true", help="Vypíše vybrané instrumenty brokera, bez odesílání.")
     mode.add_argument("--once", action="store_true", help="Provede jednu synchronizaci a skončí.")
     mode.add_argument("--loop", action="store_true", help="Pravidelně synchronizuje, dokud běží počítač a MT5.")
-    p.add_argument("--universe", choices=["stocks", "marketwatch", "file"], default="stocks",
-                   help="stocks: akcie podle cesty brokera; marketwatch: viditelné symboly; file: vlastní TXT seznam")
+    p.add_argument("--universe", choices=["stocks", "markets", "marketwatch", "file"], default="stocks",
+                   help="stocks: pouze akcie; markets: indexy/forex/kovy podle cesty brokera; marketwatch: viditelné symboly; file: vlastní TXT seznam")
     p.add_argument("--symbols-file", type=Path, default=None, help="TXT se symboly po řádcích (jen pro --universe file).")
     p.add_argument("--max-symbols", type=int, default=700, help="Maximum instrumentů. Výchozí: 700.")
     p.add_argument("--timeframe", choices=TIMEFRAMES, default="D1",
@@ -212,12 +216,16 @@ def get_symbols(mt5, cfg: argparse.Namespace) -> list[str]:
         missing = [s for s in requested if s not in available]
         if missing:
             log(f"CHYBÍ u brokera ({len(missing)}): " + ", ".join(missing[:15]) + ("..." if len(missing) > 15 else ""))
-        found = [s for s in requested if s in available and NAME.fullmatch(s)]
+        symbol_pattern = MARKET_NAME if MARKET_SYNC else NAME
+        found = [s for s in requested if s in available and symbol_pattern.fullmatch(s)]
     else:
         found = sorted({
             s.name for s in symbols
-            if NAME.fullmatch(s.name) and (
+            if (MARKET_NAME if MARKET_SYNC else NAME).fullmatch(s.name) and (
                 bool(getattr(s, "visible", False)) if cfg.universe == "marketwatch" else
+                (bool(MARKET_PATH.search(str(getattr(s, "path", ""))))
+                 and not bool(STOCK_PATH.search(str(getattr(s, "path", "")))))
+                if cfg.universe == "markets" else
                 bool(STOCK_PATH.search(str(getattr(s, "path", ""))))
             )
         })
