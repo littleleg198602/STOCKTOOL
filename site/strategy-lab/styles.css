@@ -19,3 +19,13 @@ table{width:100%;border-collapse:collapse;text-align:left;white-space:nowrap}td,
 @media(max-width:700px){.workspace-head{flex-direction:column;align-items:flex-start}.dataset-status{flex-direction:row;align-items:center;gap:13px}.dataset-status small{display:none}.editor-col{display:flex;flex-direction:column}.data-controls{align-items:stretch}.symbol-field{width:100%}.data-quantity{min-width:120px}.login-area{max-width:none;min-width:100%}.page-heading{align-items:flex-start;flex-direction:column}.page-heading h2{font-size:23px}.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.chart-area{height:220px}}
 @media(max-width:500px){main{padding:16px 13px}.topbar{padding:0 15px;height:63px}.brand{font-size:15px}.brand-mark{width:31px;height:31px}.top-nav{font-size:10px}.side-nav{top:63px}.workspace-head h1{font-size:41px}.form-panel,.analytics-panel{padding:15px}.rule-row{grid-template-columns:minmax(0,1fr) 57px 60px 22px;padding:8px;gap:4px}.rule-row select,.rule-row input{font-size:9px;padding:6px 3px}.rule-row button{padding:0}.three-fields{grid-template-columns:repeat(3,minmax(0,1fr))}.three-fields label{font-size:9px}.stats-grid .stat-cell strong{font-size:19px}.two-fields .field-row label{font-size:10px}.action-panel .primary-btn,.action-panel .outline-btn{width:100%}.rob-grid{display:flex;flex-direction:column}.rob-grid .panel{width:100%}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+/* Market MT5 H1/H4/D1/W1 selector — independent from Equity Data Manager */
+.timeframe-field { width:170px; display:flex; flex-direction:column; justify-content:flex-end }
+.timeframe-field select {
+  width:100%; min-width:0; height:43px; padding:10px 11px;
+  border:1px solid #36556b; border-radius:8px;
+  background:#0b1828; color:#e9f8fc; font-size:12px; font-weight:700;
+}
+.timeframe-field select:focus { outline:2px solid #54c3ab; outline-offset:2px }
+.timeframe-field option:disabled { color:#6d8090 }
+@media(max-width:700px){.timeframe-field{width:100%}}
