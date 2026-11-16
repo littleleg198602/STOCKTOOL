@@ -312,6 +312,8 @@
     for(const id of ["calendar-range","calendar-impact","calendar-source","calendar-only-future"])
       $(id).addEventListener("change",drawCalendar);
     $("refresh-data").addEventListener("click",()=>loadData());
+    const requestedTab=new URLSearchParams(window.location.search).get("tab");
+    if(["news","hot","calendar","sessions"].includes(requestedTab))switchTab(requestedTab);
     drawSessions();loadData();
     setInterval(drawSessions,60000);
     setInterval(()=>{if(!document.hidden)loadData(true);},15*60000);
