@@ -328,3 +328,78 @@ Browser zpracuje postupně všechna D1 data ve více krátkých API požadavcíc
 
 **Testy:** příkaz \`php tests/backtesting_engine_test.php\` na lokálním PC/CI. GitHub Actions automaticky zkontroluje PHP lint a JS \`node --check\`. Samotný reálný běh na FORPSI nad brokerovým datasety je potřeba ověřit po nasazení – ve vývojovém repozitáři nejsou osobní serverová data.
 
+
+
+---
+
+## Strategy Lab v0.1 – vizuální webový vývoj strategií (aplikace 07)
+
+**Adresa po stávajícím Deploy v3:** https://www.stocktool.eu/test/strategy-lab/
+
+Tato nová aplikace je inspirovaná **no-code jednoduchostí BlueCandle a výzkumným workflow StrategyQuant X**, ale jedná se o vlastní implementaci StockTool.eu. Nekopíruje jejich kód ani uživatelské rozhraní. Je to funkční **beta webový prototyp**, nikoli náhrada plného SQX, nepřipojuje automaticky živé obchodování a negeneruje hotové Expert Advisery.
+
+### Architektura a zabezpečení
+
+- \`site/strategy-lab/index.html\` – 4 funkční pracovní pohledy: Rule Builder, Generator, Databank, Robustness.
+- \`site/strategy-lab/styles.css\` – responzivní webové analytické prostředí.
+- \`site/strategy-lab/engine.js\` – čistě klientské historické indikátory a simulace obchodů, bez přístupu k MT5 a bez odesílání objednávek.
+- \`site/strategy-lab/app.js\` – UI, data, společná autentizace, generátor, lokální knihovna, OOS, graf, CSV/JSON.
+- \`tests/strategy_lab_engine_test.cjs\` – syntetické regresní testy indikátorů, vstupů/výstupů, SL/TP, nákladů, OOS, generatoru a Monte Carlo.
+- \`.github/workflows/strategy-lab-tests.yml\` – automatické Node.js ověření při GitHub push.
+
+Po otevření aplikace se obnoví **existující zabezpečená StockTool relace** přes Data Manager \`/test/data-manager/api/session.php\`, případně jednorázově ověří klíč přes \`login.php\`. Klíč se **nikam neukládá**. Aplikace získá D1 tickery přes \`datasets.php\` a OHLCV historii přes \`candles.php?symbol=…&timeframe=D1&limit=5000\`.
+
+**Výpočty i generování probíhají výhradně v prohlížeči**. Server FORPSI pouze vrací již uložené D1 svíčky a není zatěžován statisíci požadavků na backtesting. Prohlížeč si může zapamatovat poslední ticker a maximálně 100 **konfigurací strategií** v \`localStorage\`; nikdy neobsahují API klíč ani heslo do MT5. Lze je exportovat/importovat do JSON souboru. Nepřihlašuje se na obchodní účet, neprovádí transakce ani nezakládá EAs.
+
+### 1. Rule Builder
+
+No-code kombinace **1–5 vstupních** a **0–5 výstupních** pravidel s AND/OR, LONG/SHORT, fixní maximální dobou držení 1–120 dokončených D1 svíček, volitelným SL/TP v %, spreadem/komisí/slippage v bps a definicí chronologického OOS úseku (15–50 % historie). Aktuální bloky:
+
+- RSI(Period) pod/nad hranicí;
+- Close nad/pod SMA či EMA;
+- křížení dvou SMA nahoru/dolů;
+- průraz maxima/minima *předchozích* N dokončených D1;
+- ROC = změna ceny za N D1 nad/pod %;
+- nárůst brokerova tick volume nad násobek průměru předchozích N D1;
+- růstová/poklesová svíčka.
+
+### 2. Exekuční model (D1 OHLC, bez look-ahead)
+
+- Signál se vyhodnotí na **Close(i)** a vstup proběhne **až na Open(i+1)**. Není-li další svíčka, neotevírá se hypotetická pozice.
+- SL a TP se vyhodnocují podle High/Low až po vstupu; pokud se na stejné D1 dotknou oba, uplatní se **konzervativně STOP jako první**. Neznáme intradenní posloupnost ceny. Při gapu přes stop se plní na horším OPEN, nikoli za nereálně příznivý SL.
+- Pokud obchod neuzavřel SL/TP, vyhodnocuje se na konci D1 případné pravidlo výstupu a maximální horizont. Obě varianty uzavírají až na dalším D1 OPEN.
+- Komise se odečítají na obou koncích obchodu; celý bid/ask spread se modeluje jako poloviční dopad při vstupu a výstupu, stejně tak slippage v bps pro obě strany. Jde o přibližný model brokerových nákladů.
+- Jediný otevřený obchod na symbol a jeden testovaný konfigurační scénář. Fixní znovuinvestování není skutečné margin/risk řízení.
+- Na konci historie rozpracované pozice nejsou vykazovány jako uzavřené výhry.
+- Statistiky: počet uzavřených obchodů, úspěšnost netto, průměr, profit factor, čisté % z geometricky složených obchodů, drawdown syntetického uzavřeného „equity“ indexu. **Nejde o realistickou ekvitu portfolia**, protože chybí sizing, margin a mark-to-market.
+
+### 3. Generator
+
+Vygeneruje **30 / 100 / 200** reprodukovatelných konfigurací pravidel, period, horizontů a SL/TP podle zadaného seed; backtestuje všechny na právě načteném instrumentu. **Není to genetické programování ani strojové učení v rozsahu StrategyQuant X.**
+
+- Generátor se řadí **výhradně podle IN-SAMPLE (trénovacího) výsledku**, a to s podmínkou minimálního počtu IS obchodů, PF a kladného průměrného netto výnosu.
+- Posledních 15–50 % chronologické historie je OOS; jeho výsledek se uživateli pouze zobrazí a **nepoužívá se při řazení**.
+- Obchody, které překračují hranici IS/OOS, se do statistik ani jednoho podvzorku nezahrnou.
+- Z nejlepších variant může uživatel otevřít konfiguraci pro další test či ji uložit do Databank. Tím je OOS považováno za zkoumané; další ladění podle OOS by znamenalo přeoptimalizaci.
+
+### 4. Databank a Robustness
+
+- Databank ukládá výhradně **necitlivé konfigurace a malý statistický snapshot**, nikoli celou historii nebo klíč; maximum 100. Jednorázový import/export JSON.
+- Robustness spouští 200 Monte Carlo **permutací pořadí uzavřených obchodů**, vrací medián a 95. percentil drawdownu. To **není** simulace nových cenových cest, tickových spreadů ani pravý Walk-Forward.
+- Další stresový test zdvojnásobí nastavené komise, spread a slippage a přepočítá celý backtest. Zobrazuje OOS sample count a jasná varování, pokud je vzorek malý.
+
+### Omezení v0.1 a roadmapa
+
+Aplikace funguje **pouze pro jeden instrument a D1 data**; nepodporuje zatím H1/H4, multi-symbol testy, true tick engine, intradenní exekuci, portfolio-level drawdown, pravidelné přeoptimalizování, skutečný genetický algoritmus, Walk-Forward Matrix ani export plnohodnotného EA pro MT5. Tyto schopnosti mohou vznikat až dalšími iteracemi.
+
+Pro seriózní testy nestačí 300 D1: doporučeno průběžně rozšířit historii, přidat delistované tituly, corporate-action upravené ceny, realizovatelné historické náklady a oddělený out-of-sample/unseen trh. Výsledky retrospektivního hledání nejsou důkazem ziskové obchodní strategie.
+
+### Nasazení a testování
+
+1. Spusť stávající **Deploy-StockTool.bat v3**, který stáhne aktuální GitHub \`main\` a nahraje \`site/\` do \`/stocktool.eu/www/test/\`.
+2. Otevři https://www.stocktool.eu/test/strategy-lab/ a obnov případně \`Ctrl+F5\`.
+3. Při platné StockTool relaci se vybere dostupný D1 ticker. V Rule Builderu zvol bloky a spusť backtest.
+4. Pak vyzkoušej Generator → Databank → Robustness. Výsledky lze exportovat jako CSV historie obchodů či JSON definice strategie.
+5. Pokud generátor nevrátí žádného kandidáta, znamená to, že žádná testovaná konfigurace nesplnila IS kritéria; není to chyba ani záruka absence příležitostí.
+
+**Regresní test:** \`node tests/strategy_lab_engine_test.cjs\`. GitHub Actions kontroluje skripty a spouští test při změně souborů. Na lokálně simulovaných datech prošlo prvních 10 testů bez look-ahead a s konzervativní SL/TP logikou; první reálné nasazení na FORPSI je nutno ještě ověřit.
