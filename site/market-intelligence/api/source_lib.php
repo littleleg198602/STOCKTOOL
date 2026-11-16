@@ -14,7 +14,7 @@ function mi_get(string $url): ?string {
         $ch=curl_init($url);
         curl_setopt_array($ch,[
             CURLOPT_RETURNTRANSFER=>true, CURLOPT_FOLLOWLOCATION=>false,
-            CURLOPT_CONNECTTIMEOUT=>5, CURLOPT_TIMEOUT=>10,
+            CURLOPT_CONNECTTIMEOUT=>2, CURLOPT_TIMEOUT=>4,
             CURLOPT_USERAGENT=>'StockTool.eu/0.1 (public economic research; contact website)',
             CURLOPT_HTTPHEADER=>['Accept: application/json, application/rss+xml, text/calendar, */*'],
             CURLOPT_MAXREDIRS=>0, CURLOPT_SSL_VERIFYPEER=>true
@@ -25,7 +25,7 @@ function mi_get(string $url): ?string {
         return $code===200 && is_string($body) && strlen($body)<=2000000 ? $body : null;
     }
     $ctx=stream_context_create(['http'=>[
-        'method'=>'GET','timeout'=>9,'follow_location'=>0,
+        'method'=>'GET','timeout'=>4,'follow_location'=>0,
         'header'=>"User-Agent: StockTool.eu/0.1 (public economic research)\r\n"
     ]]);
     $body=@file_get_contents($url,false,$ctx,0,2000001);
