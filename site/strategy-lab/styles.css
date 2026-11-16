@@ -29,3 +29,16 @@ table{width:100%;border-collapse:collapse;text-align:left;white-space:nowrap}td,
 .timeframe-field select:focus { outline:2px solid #54c3ab; outline-offset:2px }
 .timeframe-field option:disabled { color:#6d8090 }
 @media(max-width:700px){.timeframe-field{width:100%}}
+
+/* Cross-app verified macro event preview; never invent upcoming releases. */
+.lab-macro-banner{display:flex;justify-content:space-between;align-items:center;gap:20px;
+  background:linear-gradient(115deg,#18353b,#192c43);border:1px solid #3e6b6b;
+  border-radius:12px;padding:15px 18px;margin-bottom:17px}
+.lab-macro-banner>div{display:flex;flex-direction:column;gap:5px;min-width:0}
+.lab-macro-kicker{color:#73e6c8;font:780 10px ui-monospace,Consolas,monospace;letter-spacing:1px}
+.lab-macro-banner strong{font-size:12px;line-height:1.5;color:#eef9f5}
+.lab-macro-banner small{color:#9cb7bf;font-size:10px;line-height:1.5}
+.lab-macro-banner a{border-radius:8px;border:1px solid #53aa90;background:#164b40;
+  padding:10px 12px;color:#bafbe6;white-space:nowrap;font-size:11px;font-weight:750}
+.lab-macro-banner a:hover{background:#226858;color:#fff}
+@media(max-width:730px){.lab-macro-banner{flex-direction:column;align-items:flex-start}.lab-macro-banner a{width:100%;text-align:center}}
