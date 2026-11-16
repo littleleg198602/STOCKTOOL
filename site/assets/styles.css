@@ -299,3 +299,40 @@ svg { display: block; }
 /* First functional application – Data Manager beta */
 .status-ready { color: #a1f7dc; border-color: #367e6b; background: #12382e; }
 .status-ready i { background: #49e3ba; }
+
+
+/* Interactive app catalog: the WHOLE card is now a native <a> link.
+   Works with touch, keyboard, middle-click and Ctrl+click (no JS required). */
+.app-card {
+  cursor: pointer;
+  color: var(--text);
+  text-decoration: none;
+  box-shadow: 0 6px 18px rgba(0,0,0,.09);
+  transition: transform .2s ease, border-color .2s ease, background .2s ease, box-shadow .2s ease;
+}
+.app-card:hover,
+.app-card:focus-visible {
+  border-color: var(--accent);
+  background: #17283a;
+  box-shadow: 0 14px 32px rgba(0,0,0,.26), 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
+  transform: translateY(-4px);
+}
+.app-card:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 4px;
+}
+.app-card:active {
+  transform: translateY(-1px) scale(.993);
+  background: #1b3043;
+}
+.app-card:hover .card-link,
+.app-card:focus-visible .card-link {
+  color: var(--accent);
+}
+.app-card:hover .card-link span,
+.app-card:focus-visible .card-link span {
+  transform: translate(4px,-3px);
+}
+@media (hover: none) {
+  .app-card:active { border-color: var(--accent); }
+}
