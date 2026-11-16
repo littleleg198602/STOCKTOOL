@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b1423">
+<meta name="description" content="StockTool Market Intelligence: News, Hot Stories, Economic Calendar a Forex Sessions s českým kontextem a časy Praha.">
+<title>News & Economic Calendar | StockTool.eu</title>
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+<link rel="stylesheet" href="./styles.css?v=1">
+<script defer src="./app.js?v=1"></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Přejít na obsah</a>
+<header class="topbar">
+  <a href="../" class="brand"><span class="brand-mark"><svg viewBox="0 0 32 32" fill="none"><path d="M5 21L12 15L17 18L26 8M21 8h5v5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>STOCK<b>TOOL</b><small>.EU</small></span></a>
+  <div class="top-label">MARKET INTELLIGENCE <span>V0.1</span></div>
+  <nav class="top-links"><a href="../strategy-lab/">Strategy Lab</a><a href="../market-data/">Market Data</a><a href="../">← Platforma</a></nav>
+</header>
+<main id="main" class="wrap">
+  <section class="hero">
+    <div><div class="eyebrow"><span class="live-pulse"></span> STOCKTOOL / MACRO INTELLIGENCE</div>
+      <h1>Know what <em>moves markets.</em></h1>
+      <p>Zprávy, horká témata, ekonomický kalendář a obchodní seance na jednom místě. Srozumitelný český kontext pro indexy, měny, zlato a stříbro.</p>
+    </div>
+    <div class="hero-clock"><span>LOKÁLNÍ ČAS · PRAHA</span><strong id="prague-clock">--:--:--</strong><small id="prague-date">Načítám čas…</small></div>
+  </section>
+  <section class="disclaimer"><strong>Nezávislé zpravodajství StockTool.</strong> Nezrcadlíme obsah Forex Factory. Zprávy pocházejí z veřejných oznámení Fed, ECB a BLS, ekonomická data ze zveřejněných plánů BEA/BLS. Nejde o kompletní globální kalendář ani o obchodní doporučení. <a href="https://www.forexfactory.com/" target="_blank" rel="noopener noreferrer">Forex Factory – originál ↗</a></section>
+  <section class="overview">
+    <div class="metric"><span>Poslední zprávy</span><strong id="n-news">—</strong><small>Oficiální zdroje</small></div>
+    <div class="metric"><span>Hot Stories</span><strong id="n-hot">—</strong><small>Náš tematický výběr</small></div>
+    <div class="metric"><span>Události v kalendáři</span><strong id="n-calendar">—</strong><small>BEA / BLS, příštích 60 dní</small></div>
+    <div class="metric"><span>Aktivní FX seance</span><strong id="n-sessions">—</strong><small id="sessions-summary">Orientace podle času</small></div>
+  </section>
+
+  <div class="tabnav" role="tablist" aria-label="Market Intelligence">
+    <button type="button" role="tab" class="tab active" id="tab-news" data-tab="news" aria-selected="true" aria-controls="panel-news"><span class="tab-icon">▤</span> News <span id="news-counter"></span></button>
+    <button type="button" role="tab" class="tab" id="tab-hot" data-tab="hot" aria-selected="false" aria-controls="panel-hot"><span class="tab-icon">↗</span> Hot Stories</button>
+    <button type="button" role="tab" class="tab" id="tab-calendar" data-tab="calendar" aria-selected="false" aria-controls="panel-calendar"><span class="tab-icon">▦</span> Calendar</button>
+    <button type="button" role="tab" class="tab" id="tab-sessions" data-tab="sessions" aria-selected="false" aria-controls="panel-sessions"><span class="tab-icon">◷</span> Sessions</button>
+  </div>
+
+  <section role="tabpanel" id="panel-news" class="tab-panel active" aria-labelledby="tab-news">
+    <div class="section-heading"><div><span class="section-code">01 / OFFICIAL HEADLINES</span><h2>Market <span>News</span></h2><p>Časově seřazené zprávy přímo od centrálních bank a ekonomických institucí. U každé zprávy najdeš české vysvětlení tématu.</p></div><a class="external" href="https://www.forexfactory.com/news" target="_blank" rel="noopener noreferrer">Forex Factory News ↗</a></div>
+    <div class="toolbar">
+      <label class="field">Téma <select id="news-topic"><option value="all">Všechna témata</option><option value="rates">Úrokové sazby / banky</option><option value="inflation">Inflace</option><option value="jobs">Trh práce</option><option value="growth">Ekonomika a růst</option><option value="energy">Energie a kovy</option></select></label>
+      <label class="field">Zdroj <select id="news-source"><option value="all">Všechny zdroje</option><option value="Fed">Fed</option><option value="ECB">ECB</option><option value="BLS">BLS</option></select></label>
+      <label class="field search-field">Hledat <input id="news-search" type="search" autocomplete="off" placeholder="Inflace, sazby, Fed…"></label>
+      <button id="refresh-data" type="button" class="secondary">↻ Obnovit</button>
+    </div>
+    <div class="list" id="news-list"><div class="empty">Načítám zprávy z oficiálních zdrojů…</div></div>
+    <div class="underlist"><span id="news-foot">Časy jsou zobrazovány pro Evropu/Prahu.</span><span>Zdrojové články se otevřou mimo StockTool.</span></div>
+  </section>
+
+  <section role="tabpanel" id="panel-hot" class="tab-panel" aria-labelledby="tab-hot" hidden>
+    <div class="section-heading"><div><span class="section-code">02 / MARKET-MOVING TOPICS</span><h2>Hot <span>Stories</span></h2><p>Čerstvé oficiální zprávy o sazbách, inflaci, zaměstnanosti a ekonomice – seřazené podle tematické důležitosti a stáří.</p></div><a class="external" href="https://www.forexfactory.com/news" target="_blank" rel="noopener noreferrer">Forex Factory Hot Stories ↗</a></div>
+    <div class="feature-note"><strong>Jak vybíráme?</strong> Hodnotíme pouze známá makrotémata a aktuálnost publikace, ne počet čtenářů, komentářů ani skutečný dopad na cenu. Nejde o žebříček Forex Factory.</div>
+    <div class="hot-grid" id="hot-list"><div class="empty">Načítám výběr…</div></div>
+  </section>
+
+  <section role="tabpanel" id="panel-calendar" class="tab-panel" aria-labelledby="tab-calendar" hidden>
+    <div class="section-heading"><div><span class="section-code">03 / ECONOMIC RELEASES</span><h2>Economic <span>Calendar</span></h2><p>Časy ekonomických zveřejnění z oficiálních kalendářů USA. Důležitost určuje naše tematická heuristika, nikoli hodnocení Forex Factory.</p></div><a class="external" href="https://www.forexfactory.com/calendar" target="_blank" rel="noopener noreferrer">Celosvětový kalendář FF ↗</a></div>
+    <div class="toolbar">
+      <label class="field">Období <select id="calendar-range"><option value="7">Následujících 7 dní</option><option value="30">Následujících 30 dní</option><option value="60">Následujících 60 dní</option><option value="past">Posledních 7 dní</option></select></label>
+      <label class="field">Důležitost <select id="calendar-impact"><option value="all">Všechny</option><option value="high">Vysoká</option><option value="medium">Střední a vysoká</option></select></label>
+      <label class="field">Organizace <select id="calendar-source"><option value="all">BEA + BLS</option><option value="BEA">BEA</option><option value="BLS">BLS</option></select></label>
+      <label class="check-label"><input type="checkbox" id="calendar-only-future" checked> Jen budoucí při běžném zobrazení</label>
+    </div>
+    <div class="calendar-warning">Zdroje BEA/BLS neobsahují v tomto exportu hodnoty <strong>Actual / Forecast / Previous</strong>. Proto je nevymýšlíme. Pro kompletní ekonomický kalendář včetně konsenzu otevři <a href="https://www.forexfactory.com/calendar" target="_blank" rel="noopener noreferrer">Forex Factory ↗</a>.</div>
+    <div class="table-wrap"><table class="calendar-table"><thead><tr><th>Praha</th><th>Měna</th><th>Důležitost*</th><th>Událost</th><th>Zdroj</th></tr></thead><tbody id="calendar-body"><tr><td colspan="5">Načítám ekonomický kalendář…</td></tr></tbody></table></div>
+    <p class="underlist" id="calendar-foot">Časová zóna: Europe/Prague (automaticky CET / CEST).</p>
+  </section>
+
+  <section role="tabpanel" id="panel-sessions" class="tab-panel" aria-labelledby="tab-sessions" hidden>
+    <div class="section-heading"><div><span class="section-code">04 / 24-HOUR FX MARKET</span><h2>Trading <span>Sessions</span></h2><p>Sydney, Tokio, Londýn a New York. Časy se přepočítávají podle místního letního a zimního času jednotlivých měst.</p></div><a class="external" href="https://www.forexfactory.com/" target="_blank" rel="noopener noreferrer">Forex Factory Sessions ↗</a></div>
+    <div class="session-toolbar"><span id="session-time-label">Aktuální čas: —</span><span class="legend"><i></i> Probíhající hlavní seance</span></div>
+    <div class="session-timeline" id="sessions-timeline"></div>
+    <div class="session-grid" id="sessions-cards"></div>
+    <div class="sessions-note"><strong>Jak číst sessions:</strong> Používáme orientační pravidelné časy hlavních FX center v jejich místní zóně (Sydney 9–18, Tokio 9–18, Londýn 8–17, New York 8–17). Forex nemá jednotnou oficiální burzu; svátky, brokerův obchodní režim a nedělní otevření se mohou lišit. U indexů nebo komodit ověř samostatně přesné obchodní hodiny svého brokera.</div>
+  </section>
+
+  <section class="below-panels">
+    <div class="info-card"><span>STOCKTOOL / DŮLEŽITÉ</span><h3>Co sledovat před vstupem?</h3><p>U USD indexů, zlata a EURUSD sleduj hlavně rozhodnutí Fedu, CPI, NFP a HDP. Samotná důležitost zprávy ale neříká, zda trh poroste či klesne.</p></div>
+    <div class="info-card"><span>ZDROJE / TRANSPARENTNOST</span><h3 id="source-status">Aktualizace dat</h3><p id="source-detail">Zprávy a kalendář se načítají z oficiálních zdrojů s mezipamětí na 15 minut. Pokud poskytovatel neodpovídá, zobrazíme upozornění místo vymyšlených dat.</p><div class="source-links"><a href="https://www.federalreserve.gov/feeds/feeds.htm" target="_blank" rel="noopener noreferrer">Fed ↗</a><a href="https://www.ecb.europa.eu/home/html/rss.en.html" target="_blank" rel="noopener noreferrer">ECB ↗</a><a href="https://www.bls.gov/schedule/news_release/" target="_blank" rel="noopener noreferrer">BLS ↗</a><a href="https://www.bea.gov/news/schedule" target="_blank" rel="noopener noreferrer">BEA ↗</a></div></div>
+  </section>
+  <footer>© <span id="year">2026</span> StockTool.eu · Market Intelligence BETA · Data jsou informativní, nikoliv investičním doporučením.</footer>
+</main>
+</body>
+</html>
