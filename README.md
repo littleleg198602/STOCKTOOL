@@ -449,3 +449,70 @@ Ve vstupním souboru musí být skutečné názvy symbolů dostupné u daného b
 6. Otevři https://www.stocktool.eu/test/strategy-lab/ – na výběr budou trhy a uložené originální H1/H4/D1/W1 intervaly. Původní **Equity Data Manager** zůstane nedotčený.
 
 **Bezpečnostní pojistka:** market sync kontroluje, že cílové API explicitně potvrzuje \`dataset=market\`; pokud ne, nepřenáší data. Stávající sync tento nový režim nepoužívá. Automatické testy jsou uložené, ale finální ověření přenosu z druhého lokálního MT5 a provoz na FORPSI je třeba provést až na uživatelově počítači.
+
+
+---
+
+## Market Intelligence v0.1 – News / Hot Stories / Calendar / Sessions (aplikace 09)
+
+**Adresa po Deploy v3:** https://www.stocktool.eu/test/market-intelligence/
+
+StockTool má novou samostatnou webovou aplikaci se čtyřmi záložkami, v tmavém stylu platformy. Zdrojová data se obnovují automaticky s **15minutovou mezipamětí** na serveru a nevyžadují StockTool API klíč (nejde o soukromá MT5 data). Propojení ze Strategy Lab a katalogu platformy.
+
+### Autorská práva a přínos pro projekt
+
+Forex Factory na https://www.forexfactory.com/notices zakazuje bez písemného souhlasu kopírování, republicaci a redistribuci zpráv, žebříčků, obsahu News a ekonomického kalendáře FEED. **StockTool proto nenačítá, neparsuje ani nekopíruje jejich obsah.** Nabízí na Forex Factory přímé odkazy a vlastní agregaci z *oficiálních primárních zdrojů*; není to zrcadlo jejich webu.
+
+### Složky
+
+- \`site/market-intelligence/index.html\` – všechny čtyři záložky; filtr zdroje, témat, období, důležitosti a přepínání.
+- \`site/market-intelligence/styles.css\` – responzivní vizuální prostředí.
+- \`site/market-intelligence/app.js\` – výpisy zpráv, datum Praha, bezpečné odkazy, kalendář a interaktivní hlavní forexové seance.
+- \`site/market-intelligence/api/source_lib.php\` – parser oficiálních RSS, BEA JSON a BLS iCalendar; kategoriální čeština, hodnocení důležitosti a serverová cache.
+- \`site/market-intelligence/api/overview.php\` – veřejné, kešované PHP API, pouze pevně zadané HTTPS zdroje, žádné uživatelské URL.
+- \`tests/market_intelligence_test.php\` – offline syntetické testy parserů a přechodu časového pásma.
+- \`.github/workflows/market-intelligence-tests.yml\` – GitHub CI.
+
+### News a Hot Stories
+
+Zdroje (pouze titulek, čas, vydavatel a odkaz na originál; nikoliv celé články):
+- Fed: \`https://www.federalreserve.gov/feeds/press_all.xml\`
+- ECB: \`https://www.ecb.europa.eu/rss/press.html\`
+- BLS: \`https://www.bls.gov/feed/bls_latest.rss\`
+- EIA: \`https://www.eia.gov/rss/todayinenergy.xml\`
+
+Český **tematický kontext** je sestaven podle známých finančních témat: inflace, centrální banky, zaměstnanost, HDP, průmysl, ropa, zlato atd. To **není přesný překlad titulků**, ani investiční interpretace konkrétního článku. **Hot Stories jsou vlastní tematický výběr**, řazený podle významu sledovaného makro tématu a stáří článku; nejsou to Hot Stories přímo z Forex Factory ani pravá měření popularity trhu.
+
+Každá zpráva má původní nadpis v angličtině a odkaz **Přeložit článek ↗** pro otevření v externím překladači, pokud server nemá nakonfigurovaný překladač. **Plný automatický překlad titulků přímo na stránce** je podporován *volitelně* přes soukromě nakonfigurovaný DeepL API klíč (bez jeho nastavení web titulky česky nepředstírá).
+
+Pokud je DeepL k dispozici, webmaster může do existujícího neveřejného \`/stocktool.eu/stocktool-private/config.php\` přidat např. \`'deepl_api_key'=>'...'\`. Pro placený tarif lze přidat \`'deepl_endpoint'=>'pro'\`, jinak se použije oficiální DeepL Free endpoint. Klíč se nikdy nevystavuje na webu ani na GitHubu. Překlady až 24 titulků se požadují při aktualizaci zdrojů jedním serverovým požadavkem a ukládají do 15min cache. Pokud připojení DeepL selže, zobrazí se původní nadpis a české shrnutí tématu.
+
+### Economic Calendar
+
+Automaticky pracuje s primárními veřejnými plánovanými zveřejněními:
+- BEA machine-readable JSON: \`https://apps.bea.gov/API/signup/release_dates.json\`;
+- BLS oficiální kalendář iCalendar: \`https://www.bls.gov/schedule/news_release/bls.ics\`.
+
+Převádí čas na **Europe/Prague** s automatickým CET/CEST a umožňuje filtry na 7 / 30 / 60 dní, zdroj a vlastní jednoduchou makro důležitost. Obsahuje převod známých názvů: CPI, NFP, PPI, HDP, osobní spotřeba, obchod USA, JOLTS.
+
+**Není to celý světový FX kalendář.** BEA/BLS dodávají jen vybrané události USA, ne předpovědi, skutečné výsledky, historické revize, ECB sazby, eurozónu, UK ani Japonsko. Web proto nikdy nevymýšlí sloupce Actual/Forecast/Previous; pro kompletní světový kontext je přímo odkaz na originální Forex Factory kalendář. Důležitost \`high / medium / low\` představuje **StockTool heuristiku**, nikoliv proprietární impact rating FF.
+
+### Trading Sessions
+
+Čistě klientský časový přehled čtyř orientačních FX obchodních center:
+- Sydney 09:00–18:00 místního času \`Australia/Sydney\`.
+- Tokio 09:00–18:00 \`Asia/Tokyo\`.
+- Londýn 08:00–17:00 \`Europe/London\`.
+- New York 08:00–17:00 \`America/New_York\`.
+
+Graf po 15 minutách ukazuje časovou osu od -12h do +12h v pražském čase. Jde o **hlavní časové zóny aktivity forexového trhu**, ne o přesné obchodní hodiny burz, CFD brokera, výjimky o svátcích nebo záruku likvidity. IANA pásma správně zohledňují rozdílný přechod na letní a zimní čas.
+
+### Nasazení a validace
+
+1. Spusť dosavadní **Deploy-StockTool.bat v3** a aktualizuj \`site/\` na FORPSI.
+2. Otevři https://www.stocktool.eu/test/market-intelligence/ a případně dej \`Ctrl+F5\`.
+3. Vyzkoušej všechny čtyři záložky, filtry a odkazy. Není potřeba nový MT5, API klíč ani soukromá konfigurace pro základní přehled.
+4. Server musí mít PHP 8+, přístup na HTTPS k oficiálním zdrojům a právo zapisovat do \`stocktool-private/intelligence-cache\`. Pokud hosting nedovolí odchozí HTTPS nebo zdroj vrátí 403, aplikace zobrazí skutečnou nedostupnost; bez nahraných dat nevytváří umělý obsah.
+5. Offline kontrola: \`php tests/market_intelligence_test.php\`; JS \`node --check site/market-intelligence/app.js\`. Pro GitHub je připravené CI.
+
+**Důležité omezení v0.1:** Spuštění PHP na skutečném FORPSI nad externími feedy a DeepL (není nastaven) se ověří až po webovém deployi. Teprve pak uvidíme, zda všechny oficiální servery povolují přístup z IP hostingu. StockTool nezajišťuje licencovaný Bloomberg/Reuters/ForexFactory zpravodajský přenos.
