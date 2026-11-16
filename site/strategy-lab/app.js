@@ -8,15 +8,15 @@
   const fm=new Intl.NumberFormat("cs-CZ",{maximumFractionDigits:2});
   const fmt=(v,u="")=>v===null||v===undefined||!Number.isFinite(Number(v))?"—":fm.format(Number(v))+u;
   const date=t=>{try{return t?new Date(Number(t)*1000).toISOString().slice(0,10):"—";}catch{return"—";}};
-  const STORAGE="stocktool_strategy_lab_bank_v1";
+  const STORAGE="stocktool_strategy_lab_market_bank_v1";
   const defaultConfig={
-    name:"RSI Pullback D1",side:"LONG",join:"AND",exitJoin:"AND",
+    name:"RSI Market Pullback",timeframe:"D1",side:"LONG",join:"AND",exitJoin:"AND",
     entry:[{type:"rsi_below",period:14,value:65},{type:"close_above_sma",period:50,value:0}],
     exit:[{type:"rsi_above",period:14,value:62}],
     horizon:10,stopLoss:5,takeProfit:10,commission:1,spread:5,slippage:2,oos:30
   };
   let entryRules=[],exitRules=[],bank=[],generated=[],lastResult=null,marketBars=null,marketContext=null;
-  let dataSymbol="",signedIn=false,catalog=[],currentTab="builder",isGenerating=false,genCancel=false,toastTimer=null,genProgress=0;
+  let dataSymbol="",dataTimeframe="",signedIn=false,catalog=[],catalogEntries=[],currentTab="builder",isGenerating=false,genCancel=false,toastTimer=null,genProgress=0;
 
   function alertUser(text,error=false){
     const el=$("toast");el.textContent=text;
@@ -117,6 +117,7 @@
   function putConfig(config){
     const c=E.config(config);
     $("strategy-name").value=c.name;$("side").value=c.side;
+    $("timeframe").value=c.timeframe;
     $("entry-join").value=c.join;$("exit-join").value=c.exitJoin;
     $("horizon").value=String(c.horizon);
     $("stop-loss").value=String(c.stopLoss);$("take-profit").value=String(c.takeProfit);
@@ -133,7 +134,7 @@
       takeProfit:Number($("take-profit").value),commission:Number($("commission").value),
       spread:Number($("spread").value),slippage:Number($("slippage").value),
       oos:Number($("oos").value),
-      entry:entryRules,exit:exitRules,symbol:$("symbol").value.trim().toUpperCase()
+      entry:entryRules,exit:exitRules,symbol:$("symbol").value.trim().toUpperCase(),timeframe:$("timeframe").value
     });
   }
 
@@ -188,20 +189,35 @@
       else setConnection(e.message,true);
     }
   }
+  function availableForSymbol(symbol){
+    return catalogEntries.filter(d=>String(d.symbol).toUpperCase()===symbol)
+      .map(d=>String(d.timeframe).toUpperCase());
+  }
+  function syncTimeframeOptions(){
+    const symbol=$("symbol").value.trim().toUpperCase();
+    const available=availableForSymbol(symbol);
+    const field=$("timeframe");
+    for(const option of field.options)option.disabled=available.length>0&&!available.includes(option.value);
+    if(available.length&&!available.includes(field.value)){
+      field.value=["D1","H4","H1","W1"].find(tf=>available.includes(tf))||available[0];
+    }
+    return available;
+  }
   async function loadCatalog(){
     if(!signedIn)return;
-    const r=await getJSON("../data-manager/api/datasets.php");
-    catalog=[...new Set((r.datasets||[]).filter(d=>d.timeframe==="D1")
-      .map(d=>String(d.symbol).toUpperCase()))].sort();
+    const r=await getJSON("../market-data/api/datasets.php");
+    catalogEntries=(r.datasets||[]).filter(d=>["H1","H4","D1","W1"].includes(String(d.timeframe).toUpperCase()));
+    catalog=[...new Set(catalogEntries.map(d=>String(d.symbol).toUpperCase()))].sort();
     const datalist=$("symbols");datalist.replaceChildren();
     for(const symbol of catalog)datalist.append(make("option",{value:symbol}));
     const candidate=$("symbol").value.trim().toUpperCase();
     if(!candidate||!catalog.includes(candidate)){
-      const priority=["AAPL","MSFT","NVDA","GOOGL","AA"];
-      $("symbol").value=priority.find(s=>catalog.includes(s))||catalog[0]||"";
+      const priority=["US500","NAS100","GER40","XAUUSD","EURUSD","US30","JP225"];
+      $("symbol").value=priority.find(sym=>catalog.includes(sym))||catalog[0]||"";
     }
-    setConnection("Přihlášeno · dostupných "+catalog.length+" instrumentů s D1 historií.");
-    if(!catalog.length)setDataState("Data Manager zatím nemá D1 datasety.");
+    syncTimeframeOptions();
+    setConnection("Přihlášeno · Market Data Manager obsahuje "+catalog.length+" instrumentů.");
+    if(!catalog.length)setDataState("Market Data Manager zatím nemá žádná data. Nejdřív spusť import z druhého MT5.");
   }
   async function loadData(quiet=false){
     if(!signedIn){
@@ -209,14 +225,20 @@
       catch(e){setConnection(e.message,true);return alertUser(e.message,true);}
     }
     const requested=$("symbol").value.trim().toUpperCase();
-    if(!/^[A-Z0-9._:-]{1,30}$/.test(requested))return alertUser("Zadej platný ticker (např. AAPL).",true);
+    const tf=$("timeframe").value;
+    if(!/^[A-Z0-9._:#@+\\-]{1,40}$/.test(requested))return alertUser("Zadej platný ticker z Market Data Manageru.",true);
+    if(!["H1","H4","D1","W1"].includes(tf))return alertUser("Vyber platný interval.",true);
+    if(catalogEntries.length && !catalogEntries.some(d=>
+      String(d.symbol).toUpperCase()===requested && String(d.timeframe).toUpperCase()===tf)){
+      return alertUser(requested+" nemá v Market Data Manageru dostupný interval "+tf+".",true);
+    }
     const button=$("load-data");button.disabled=true;
-    setDataState("Načítám "+requested+"…");
+    setDataState("Načítám "+requested+" / "+tf+"…");
     try{
-      const payload=await getJSON("../data-manager/api/candles.php?symbol="+
-        encodeURIComponent(requested)+"&timeframe=D1&limit=5000");
+      const payload=await getJSON("../market-data/api/candles.php?symbol="+
+        encodeURIComponent(requested)+"&timeframe="+encodeURIComponent(tf)+"&limit=5000");
       const verified=E.verifyBars(payload.bars||[]);
-      marketBars=verified;marketContext=E.context(verified);dataSymbol=requested;
+      marketBars=verified;marketContext=E.context(verified);dataSymbol=requested;dataTimeframe=tf;
       lastResult=null;
       for(const id of ["m-trades","m-win","m-pf","m-net","m-dd","m-avg",
         "is-trades","is-win","is-pf","is-avg","oos-trades","oos-win","oos-pf","oos-avg"])$(id).textContent="—";
@@ -226,12 +248,12 @@
       $("symbol").value=requested;
       $("bars-count").textContent=fmt(verified.length);
       $("bars-period").textContent=date(verified[0].t)+" — "+date(verified[verified.length-1].t);
-      setDataState(requested+" · "+verified.length+" D1 svíček");
-      setStatus("Historie "+requested+" připravena k výpočtu.");
-      try{localStorage.setItem("stocktool_strategy_lab_last_symbol_v1",requested);}catch{}
-      if(!quiet)alertUser(requested+": načteno "+verified.length+" D1 svíček.");
+      setDataState(requested+" / "+tf+" · "+verified.length+" svíček");
+      setStatus("Historie "+requested+" / "+tf+" připravena k výpočtu.");
+      try{localStorage.setItem("stocktool_strategy_lab_market_symbol_v1",requested);}catch{}
+      if(!quiet)alertUser(requested+" / "+tf+": načteno "+verified.length+" svíček.");
     }catch(e){
-      marketBars=null;marketContext=null;dataSymbol="";
+      marketBars=null;marketContext=null;dataSymbol="";dataTimeframe="";
       $("bars-count").textContent="—";
       setDataState("Chyba načtení: "+e.message);
       alertUser(e.message,true);
@@ -239,8 +261,10 @@
   }
   async function ensureData(){
     const desired=$("symbol").value.trim().toUpperCase();
-    if(!marketBars||dataSymbol!==desired)await loadData(true);
-    if(!marketBars)throw Error("Nejdřív musí být dostupné validní D1 svíčky.");
+    const selectedTimeframe=$("timeframe").value;
+    if(!marketBars||dataSymbol!==desired||dataTimeframe!==selectedTimeframe)await loadData(true);
+    if(!marketBars||dataSymbol!==desired||dataTimeframe!==selectedTimeframe)
+      throw Error("Nejdřív musí být dostupné validní svíčky vybraného trhu a intervalu.");
   }
 
   function metric(id,v,u=""){const el=$(id);el.textContent=fmt(v,u);el.classList.toggle("positive",v!=null&&v>0&&["m-net","m-avg","is-avg","oos-avg"].includes(id));el.classList.toggle("negative",v!=null&&v<0);}
@@ -536,6 +560,8 @@
     $("load-data").addEventListener("click",()=>loadData());
     $("api-key").addEventListener("keydown",e=>{if(e.key==="Enter")loadData();});
     $("symbol").addEventListener("keydown",e=>{if(e.key==="Enter")loadData();});
+    $("symbol").addEventListener("change",syncTimeframeOptions);
+    $("timeframe").addEventListener("change",()=>{setDataState("Změněn interval – načti nové svíčky.");});
     $("oos").addEventListener("change",()=>{const n=Number($("oos").value);
       if(n>=15&&n<=50){
         $("split-is-text").textContent=(100-n)+" % IN-SAMPLE";
@@ -545,7 +571,7 @@
     });
     window.addEventListener("resize",drawChart);
     loadBank();putConfig(defaultConfig);
-    try{const last=localStorage.getItem("stocktool_strategy_lab_last_symbol_v1");if(last)$("symbol").value=last;}catch{}
+    try{const last=localStorage.getItem("stocktool_strategy_lab_market_symbol_v1");if(last)$("symbol").value=last;}catch{}
     restoreLogin();
   }
   document.addEventListener("DOMContentLoaded",wire);
