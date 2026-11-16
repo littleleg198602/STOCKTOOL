@@ -403,3 +403,49 @@ Pro seriózní testy nestačí 300 D1: doporučeno průběžně rozšířit hist
 5. Pokud generátor nevrátí žádného kandidáta, znamená to, že žádná testovaná konfigurace nesplnila IS kritéria; není to chyba ani záruka absence příležitostí.
 
 **Regresní test:** \`node tests/strategy_lab_engine_test.cjs\`. GitHub Actions kontroluje skripty a spouští test při změně souborů. Na lokálně simulovaných datech prošlo prvních 10 testů bez look-ahead a s konzervativní SL/TP logikou; první reálné nasazení na FORPSI je nutno ještě ověřit.
+
+
+---
+
+## Oddělení Equity MT5 a Market MT5 – nové řešení pro Strategy Lab
+
+**Nyní máme dva datově nezávislé Data Managery:**
+
+| Větev | Web | Data u FORPSI (mimo www) | Lokální MT5 |
+|---|---|---|---|
+| **EQUITY** (původní, beze změny) | https://www.stocktool.eu/test/data-manager/ | \`stocktool-private/data/\` | původní Darwinex MT5 pro akcie |
+| **MARKET** (nová) | https://www.stocktool.eu/test/market-data/ | \`stocktool-private/market-data/\` | **jiný MT5 terminál** pro indexy/forex/kovy/komodity |
+
+Oba používají **jedno existující zabezpečené přihlášení StockTool** a stejný soukromý API klíč, ale oddělené HTTPS API endpointy a samostatné serverové složky. **Akciová historie se nepřesouvá, nemaže ani nepřepisuje.**
+
+### Které aplikace odkud čtou
+- **BUY Scanner, SHORT Scanner, Market Pressure, stávající Backtesting Engine, JOHNY:** dál čtou výhradně **Equity Data Manager**, jak doposud.
+- **Strategy Lab:** nyní čte výhradně **Market Data Manager** a nabízí originální intervaly **H1, H4, D1 a W1**, které opravdu existují v nové databázi.
+- Databank konfigurací Strategy Lab používá nový název místního úložiště. Staré akciové konfigurace v prohlížeči zůstávají nedotčené, ale do nového market LABu se automaticky nekopírují.
+- Výpočetní model LABu stále používá pouze dokončené OHLCV svíčky, vstup na dalším OPEN, konzervativní SL/TP a rozdělení IS/OOS. Všechny zvolené časové rámce jsou v backtestu **počet svíček**, nikoliv kalendářní dny.
+
+### Synchronizace druhého MT5
+Soubory:
+- \`scripts/stocktool_mt5_sync.py\` – původní synchronizátor; zachovaný režim \`--universe stocks\`. Nově umí rozpoznávat i \`--universe markets\`.
+- \`scripts/stocktool_mt5_market_sync.py\` – **samostatný market wrapper**, který vyžaduje explicitní \`--terminal-path\` a přesměruje data do \`/test/market-data/api/ingest.php\`.
+- \`scripts/StockTool-MT5-MARKET-TEST.bat\` – první test až 8 instrumentů, originální H1/H4/D1/W1, 250 svíček/interval.
+- \`scripts/StockTool-MT5-MARKET-START.bat\` – pravidelná synchronizace až 200 instrumentů, při prvním připojení až 1800 dokončených svíček/interval, cyklus 30 minut.
+- \`tests/test_market_mt5_split.py\` a \`.github/workflows/market-data-split-tests.yml\` – automatické ověření oddělení MT5 dat, PHP syntaxe, Market LABu a bezpečnosti výběru instrumentů.
+
+**Podstatné:** Windows launcher při prvním spuštění požádá o plnou cestu k \`terminal64.exe\` **DRUHÉHO** MetaTraderu 5, například \`C:\Program Files\Broker Markets\terminal64.exe\`. Tuto cestu uloží do \`%USERPROFILE%\.stocktool\market_terminal_path.txt\` (nejde o heslo). Konektor má separátní \`mt5_market_state_<hash>.json\`, takže si neplete ani potvrzené timestampy původních akciových dat.
+
+Výběr \`markets\` hledá v cestách brokera indikace indexů, forexu, kovů, energií, komodit a dalších trhů. **Známé akciové složky jsou odfiltrovány i při Market Watch nebo ručním výběru**. Pokud broker pojmenovává složky jinak, můžeš použít přesný seznam symbolů v TXT:
+\`\`\`bat
+py -3 scripts\stocktool_mt5_market_sync.py --terminal-path "C:\TVUJ_DRUHY_MT5\terminal64.exe" --universe file --symbols-file "C:\MT5\moje-trhy.txt" --once --timeframes H1,H4,D1,W1 --initial-bars 1800
+\`\`\`
+Ve vstupním souboru musí být skutečné názvy symbolů dostupné u daného brokera, každý na vlastním řádku. Názvy typu \`US500\`, \`GER40\`, \`EURUSD\`, \`XAUUSD\` jsou pouze příklady; ne každý broker používá stejné značení.
+
+### Postup nasazení
+1. Nech běžet **stávající akciový MT5 a původní synchronizátor** – pokud fungují, nic v nich neměň.
+2. Spusť \`Deploy-StockTool.bat v3\` a nasad novou webovou část \`site/\` na FORPSI.
+3. Spusť **druhý terminál MT5**, přihlas účet s indexy/forexem/kovy a ověř, že obsahuje požadované trhy.
+4. Stáhni a spusť \`StockTool-MT5-MARKET-TEST.bat\`; vyber přesné \`terminal64.exe\` druhého MT5. Přihlášení k API používá už uložený Windows DPAPI klíč. Launcher stáhne aktuální oba Python soubory z GitHubu.
+5. Po potvrzení testovacích instrumentů v **Market Data Manageru** spusť \`StockTool-MT5-MARKET-START.bat\`. Ponech zapnutý odpovídající druhý MT5.
+6. Otevři https://www.stocktool.eu/test/strategy-lab/ – na výběr budou trhy a uložené originální H1/H4/D1/W1 intervaly. Původní **Equity Data Manager** zůstane nedotčený.
+
+**Bezpečnostní pojistka:** market sync kontroluje, že cílové API explicitně potvrzuje \`dataset=market\`; pokud ne, nepřenáší data. Stávající sync tento nový režim nepoužívá. Automatické testy jsou uložené, ale finální ověření přenosu z druhého lokálního MT5 a provoz na FORPSI je třeba provést až na uživatelově počítači.
