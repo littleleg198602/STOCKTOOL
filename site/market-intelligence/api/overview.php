@@ -27,15 +27,18 @@ function mi_translate_deepl(array $stories): array {
     if(!is_string($key)||strlen($key)<20)return [$stories,false];
     $host=($conf['deepl_endpoint']??'free')==='pro'
         ?'https://api.deepl.com/v2/translate':'https://api-free.deepl.com/v2/translate';
-    $limit=min(24,count($stories));$post=['target_lang'=>'CS','source_lang'=>'EN'];
-    for($i=0;$i<$limit;$i++)$post['text['.$i.']']=$stories[$i]['title_original'];
+    $limit=min(24,count($stories));
+    // DeepL expects repeated "text" fields, not text[0], text[1].
+    $bodyFields='target_lang=CS&source_lang=EN';
+    for($i=0;$i<$limit;$i++)
+        $bodyFields.='&text='.rawurlencode($stories[$i]['title_original']);
     if(!$limit)return [$stories,true];
     $ch=curl_init($host);
     curl_setopt_array($ch,[
         CURLOPT_POST=>true,CURLOPT_RETURNTRANSFER=>true,CURLOPT_CONNECTTIMEOUT=>4,
         CURLOPT_TIMEOUT=>12,CURLOPT_SSL_VERIFYPEER=>true,
         CURLOPT_HTTPHEADER=>['Authorization: DeepL-Auth-Key '.$key,'Content-Type: application/x-www-form-urlencoded'],
-        CURLOPT_POSTFIELDS=>http_build_query($post)
+        CURLOPT_POSTFIELDS=>$bodyFields
     ]);
     $body=curl_exec($ch);$status=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);curl_close($ch);
     if($status!==200||!is_string($body))return [$stories,false];
@@ -81,7 +84,8 @@ $cache=mi_cached('overview_official_v1',900,static function():?array {
     $events=mi_unique_events(array_merge($beaEvents,$blsEvents));
     $events=array_slice($events,0,400);
     // Critical: no fabricated results if official feeds are unavailable.
-    if(!$stories&&!$events)return null;
+    // Cache even an outage/empty source response for 15 minutes to avoid
+    // hammering official endpoints from shared hosting.
     $hot=$stories;
     usort($hot,static function($a,$b)use($now){
         $score=static fn($s)=>($s['weight']??1)*10+
@@ -101,7 +105,7 @@ $payload=$cache['items'];
 mi_reply([
     'ok'=>true,'version'=>'market-intelligence-v0.1',
     'updated_at'=>$cache['updated_at'],'stale'=>$cache['stale'],
-    'data_available'=>$cache['ok'],
+    'data_available'=>count($payload['news']??[])>0||count($payload['calendar']??[])>0,
     'news'=>$payload['news']??[],'hot'=>$payload['hot']??[],
     'calendar'=>$payload['calendar']??[],'sources'=>$payload['sources']??[],
     'translation_enabled'=>$payload['translation_enabled']??false,
