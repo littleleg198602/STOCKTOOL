@@ -524,6 +524,33 @@
       alertUser("Robustness test dokončen.");
     }catch(e){alertUser(e.message,true);}
   }
+  async function loadMacroPreview(){
+    const target=$("macro-next");
+    if(!target)return;
+    try{
+      const response=await fetch("../market-intelligence/api/overview.php",{method:"GET",cache:"no-store"});
+      if(!response.ok)throw Error("Server zdroje nedostupný");
+      const data=await response.json();
+      const now=Math.floor(Date.now()/1000);
+      const events=(Array.isArray(data.calendar)?data.calendar:[])
+        .filter(item=>Number(item.time)>now && item.impact==="high")
+        .sort((a,b)=>a.time-b.time);
+      if(!events.length){
+        target.textContent="V dostupných zdrojích BEA/BLS právě není nejbližší událost s vysokým makro významem.";
+        return;
+      }
+      const next=events[0];
+      const when=new Intl.DateTimeFormat("cs-CZ",{
+        timeZone:"Europe/Prague",day:"2-digit",month:"2-digit",
+        hour:"2-digit",minute:"2-digit",hour12:false
+      }).format(new Date(next.time*1000));
+      target.textContent=when+" · "+(next.name_cs||next.name_original)+" · "+(next.currency||"USD")+
+        " (oficiální kalendář "+next.source+")";
+    }catch{
+      target.textContent="Přehled makro událostí je momentálně nedostupný. Otevři samostatný News & Calendar.";
+    }
+  }
+
   function wire(){
     if(!E){setConnection("Nelze načíst výpočetní engine.js.",true);return;}
     $("entry-add").addEventListener("click",()=>{
@@ -573,6 +600,7 @@
     loadBank();putConfig(defaultConfig);
     try{const last=localStorage.getItem("stocktool_strategy_lab_market_symbol_v1");if(last)$("symbol").value=last;}catch{}
     restoreLogin();
+    loadMacroPreview();
   }
   document.addEventListener("DOMContentLoaded",wire);
 })();
