@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#080f1c">
+<meta name="description" content="StockTool Strategy Lab – vizuální tvorba strategií, no-code builder, generátor, databanka, OOS a testy robustnosti z MT5 D1.">
+<title>Strategy Lab | StockTool.eu</title>
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+<link rel="stylesheet" href="./styles.css?v=lab1">
+<script defer src="./engine.js?v=lab1"></script>
+<script defer src="./app.js?v=lab1"></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Přejít do Strategy Lab</a>
+<header class="topbar">
+  <a class="brand" href="../"><span class="brand-mark">◈</span><strong>STOCK<span>TOOL</span><small>.EU</small></strong></a>
+  <div class="topbar-center">STRATEGY <b>LAB</b> <span class="top-version">BETA 0.1</span></div>
+  <nav class="top-nav" aria-label="Navigace platformy">
+    <a href="../data-manager/">Data Manager</a>
+    <a href="../backtesting/">Backtesting</a>
+    <a href="../">← Platforma</a>
+  </nav>
+</header>
+<div class="app">
+  <aside class="side-nav">
+    <div class="side-label">RESEARCH STUDIO</div>
+    <button class="nav-item active" data-tab="builder" type="button"><span class="nav-symbol">◇</span><span>Rule Builder<small>No-code strategie</small></span></button>
+    <button class="nav-item" data-tab="generator" type="button"><span class="nav-symbol">⚙</span><span>Generator<small>Hledání parametrů</small></span></button>
+    <button class="nav-item" data-tab="databank" type="button"><span class="nav-symbol">▤</span><span>Databank<small>Uložené strategie</small></span><b id="bank-count">0</b></button>
+    <button class="nav-item" data-tab="robustness" type="button"><span class="nav-symbol">⊞</span><span>Robustness<small>OOS · Monte Carlo</small></span></button>
+    <div class="side-divider"></div>
+    <div class="side-label">DALŠÍ NÁSTROJE</div>
+    <a class="nav-item muted-link" href="../buy-scanner/"><span class="nav-symbol">↗</span><span>BUY Scanner</span></a>
+    <a class="nav-item muted-link" href="../short-scanner/"><span class="nav-symbol">↘</span><span>SHORT Scanner</span></a>
+    <a class="nav-item muted-link" href="../market-pressure/"><span class="nav-symbol">≋</span><span>Market Pressure</span></a>
+    <div class="side-foot"><span class="pulse"></span> NO-CODE · MT5 D1<p>Výzkum a testování bez odesílání obchodních příkazů.</p></div>
+  </aside>
+  <main id="main">
+    <div class="workspace-head">
+      <div><div class="eyebrow">STOCKTOOL / STRATEGY DEVELOPMENT</div><h1>Build. Test. <em>Validate.</em></h1><p>Sestav vlastní strategii z bloků, nech počítač generovat varianty a ověř ji na historických MT5 datech.</p></div>
+      <div class="dataset-status"><span>ZDROJ DAT</span><strong>Darwinex MT5</strong><small id="data-state">Čeká na načtení dat</small></div>
+    </div>
+    <div class="notice"><strong>Výzkumný D1 prototyp.</strong> Výpočty probíhají ve tvém prohlížeči; data poskytuje existující zabezpečené API. Nejde o StrategyQuant X ani jeho výkonnostní ekvivalent: zatím pouze jeden instrument D1, bez tickové přesnosti, cloudové exekuce a automatického obchodování. Historická výkonnost nic nezaručuje.</div>
+    <section class="data-panel panel" aria-label="Tržní data a přihlášení">
+      <div class="panel-caption">01 / DATA SOURCE</div>
+      <div class="data-controls">
+        <div class="input-wrap symbol-field"><label for="symbol">Instrument</label><input id="symbol" list="symbols" autocomplete="off" placeholder="Např. AAPL"><datalist id="symbols"></datalist></div>
+        <div class="data-quantity"><span>Timeframe</span><strong>D1</strong><small>Dokončené svíčky</small></div>
+        <div class="data-quantity"><span>Počet svíček</span><strong id="bars-count">—</strong><small id="bars-period">Bez dat</small></div>
+        <button class="primary-btn" id="load-data" type="button">Načíst tržní data</button>
+        <div class="login-area" id="login-controls"><label for="api-key">API klíč – pouze při prvním přihlášení</label><input id="api-key" type="password" autocomplete="off" placeholder="Soukromý StockTool klíč"></div>
+        <div class="connection-label" id="connection-status" role="status">Ověřuji zapamatované přihlášení…</div>
+      </div>
+    </section>
+
+    <section id="tab-builder" class="tab-page active" aria-labelledby="builder-heading">
+      <div class="page-heading"><div><div class="panel-caption">02 / STRATEGY DESIGN</div><h2 id="builder-heading">Visual Rule Builder</h2><p>Jednotlivá pravidla se vyhodnocují až při uzavření denní svíčky.</p></div><div class="heading-actions"><button class="outline-btn" id="reset-config" type="button">↻ Výchozí nastavení</button><button class="outline-btn" id="save-config" type="button">♡ Uložit do Databank</button></div></div>
+      <div class="design-grid">
+        <div class="editor-col">
+          <div class="panel form-panel">
+            <div class="section-header"><div class="panel-caption">STRATEGY PROFILE</div><span class="section-number">01</span></div>
+            <div class="field-row"><label for="strategy-name">Název strategie</label><input id="strategy-name" type="text" maxlength="90" value="RSI Reversal D1"></div>
+            <div class="field-row"><label for="side">Směr obchodování</label><select id="side"><option value="LONG">▲ LONG</option><option value="SHORT">▼ SHORT</option></select></div>
+            <div class="field-row"><label for="horizon">Maximální držení (D1)</label><input id="horizon" type="number" min="1" max="120" step="1" value="10"></div>
+          </div>
+          <div class="panel form-panel">
+            <div class="section-header"><div><div class="panel-caption">ENTRY LOGIC</div><h3>Podmínky vstupu</h3></div><select id="entry-join" aria-label="Spojení podmínek vstupu"><option value="AND">VŠECHNY (AND)</option><option value="OR">LIBOVOLNÁ (OR)</option></select></div>
+            <div class="rules-stack" id="entry-rules"></div>
+            <button class="add-rule" id="entry-add" type="button">+ Přidat podmínku vstupu</button>
+            <div class="rule-hint">Vstup až na OPEN následující D1. Maximálně 5 pravidel.</div>
+          </div>
+          <div class="panel form-panel">
+            <div class="section-header"><div><div class="panel-caption">EXIT LOGIC</div><h3>Podmínky výstupu</h3></div><select id="exit-join" aria-label="Spojení podmínek výstupu"><option value="AND">VŠECHNY (AND)</option><option value="OR">LIBOVOLNÁ (OR)</option></select></div>
+            <div class="rules-stack" id="exit-rules"></div>
+            <button class="add-rule" id="exit-add" type="button">+ Přidat podmínku výstupu</button>
+            <div class="rule-hint">Pokud nic nezadáš, vystoupíme po horizontu. Jinak nejdříve podle výstupu, SL/TP nebo horizontu.</div>
+          </div>
+          <div class="panel form-panel">
+            <div class="section-header"><div class="panel-caption">RISK & EXECUTION</div><span class="section-number">04</span></div>
+            <div class="two-fields"><div class="field-row"><label for="stop-loss">Stop Loss (%)</label><input id="stop-loss" type="number" min="0" max="50" step="0.5" value="5"><small>0 = vypnuto</small></div><div class="field-row"><label for="take-profit">Take Profit (%)</label><input id="take-profit" type="number" min="0" max="100" step="0.5" value="10"><small>0 = vypnuto</small></div></div>
+            <div class="three-fields"><div class="field-row"><label for="commission">Komise / strana (bps)</label><input id="commission" type="number" min="0" max="100" step="0.5" value="1"></div><div class="field-row"><label for="spread">Celý spread (bps)</label><input id="spread" type="number" min="0" max="100" step="0.5" value="5"></div><div class="field-row"><label for="slippage">Skluz / strana (bps)</label><input id="slippage" type="number" min="0" max="100" step="0.5" value="2"></div></div>
+            <div class="field-row"><label for="oos">Out-of-sample (% historie)</label><input id="oos" type="number" min="15" max="50" step="5" value="30"><small>Posledních 30 % nikdy nepoužíváme k řazení generovaných strategií.</small></div>
+          </div>
+          <div class="action-panel"><button class="primary-btn big" id="run-backtest" type="button">▶ Spustit backtest</button><button class="outline-btn" id="download-strategy" type="button">↓ JSON strategie</button><span id="builder-status" role="status">Připraveno ke konfiguraci.</span></div>
+        </div>
+        <div class="analytics-col">
+          <div class="panel analytics-panel">
+            <div class="section-header"><div><div class="panel-caption">PERFORMANCE SUMMARY</div><h3>Výsledky strategie</h3></div><span class="tag">IS / OOS</span></div>
+            <div class="stats-grid">
+              <div class="stat-cell"><span>Uzavřené obchody</span><strong id="m-trades">—</strong></div>
+              <div class="stat-cell"><span>Win rate</span><strong id="m-win">—</strong></div>
+              <div class="stat-cell"><span>Profit factor</span><strong id="m-pf">—</strong></div>
+              <div class="stat-cell"><span>Netto výsledek*</span><strong id="m-net">—</strong></div>
+              <div class="stat-cell"><span>Max drawdown*</span><strong id="m-dd">—</strong></div>
+              <div class="stat-cell"><span>Průměr / obchod</span><strong id="m-avg">—</strong></div>
+            </div>
+            <div class="chart-title"><strong>Vývoj uzavřených obchodů</strong><span>Syntetický index od 100</span></div>
+            <div class="chart-area"><canvas id="equity-chart" aria-label="Syntetický graf uzavřených obchodů"></canvas><div id="chart-placeholder">Po backtestu zobrazíme výsledkovou křivku.</div></div>
+            <div class="chart-disclaimer">* Hypotetická posloupnost 100% reinvestovaných výsledků, nikoliv reálné portfolio. Max DD nezahrnuje nerealizované ztráty.</div>
+          </div>
+          <div class="panel analytics-panel">
+            <div class="section-header"><div><div class="panel-caption">OUT-OF-SAMPLE VALIDATION</div><h3>Trénink vs. neviděná data</h3></div></div>
+            <div class="split-visual"><span id="split-is-text">70 % IN-SAMPLE</span><span id="split-oos-text">30 % OUT-OF-SAMPLE</span><div class="split-track"><i id="split-is-bar" style="width:70%"></i></div></div>
+            <table class="compact-table"><thead><tr><th>Metrika</th><th>In Sample</th><th>Out of Sample</th></tr></thead><tbody>
+              <tr><td>Počet obchodů</td><td id="is-trades">—</td><td id="oos-trades">—</td></tr>
+              <tr><td>Win rate</td><td id="is-win">—</td><td id="oos-win">—</td></tr>
+              <tr><td>Profit factor</td><td id="is-pf">—</td><td id="oos-pf">—</td></tr>
+              <tr><td>Průměr netto</td><td id="is-avg">—</td><td id="oos-avg">—</td></tr>
+            </tbody></table>
+            <p class="validation-note" id="validation-note">OOS zůstává oddělené. Obchody překračující hranici IS/OOS nezapočítáváme do žádného z těchto dvou podvzorků.</p>
+          </div>
+          <div class="panel analytics-panel">
+            <div class="section-header"><div><div class="panel-caption">TRADE LOG</div><h3>Poslední obchody</h3></div><button class="outline-btn tiny" id="download-trades" type="button" disabled>↓ CSV</button></div>
+            <div class="table-scroller"><table class="trade-table"><thead><tr><th>Vstup</th><th>Výstup</th><th>Důvod</th><th>Netto</th></tr></thead><tbody id="trade-rows"><tr><td colspan="4" class="empty">Spusť backtest, aby se zobrazily obchody.</td></tr></tbody></table></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-generator" class="tab-page" aria-labelledby="gen-heading">
+      <div class="page-heading"><div><div class="panel-caption">02 / AUTOMATED RESEARCH</div><h2 id="gen-heading">Strategy Generator</h2><p>Automaticky zkusí různé vstupy, periody, SL/TP a doby držení na vybraném instrumentu.</p></div></div>
+      <div class="generator-grid">
+        <div class="panel form-panel">
+          <div class="panel-caption">GENERATION SETTINGS</div>
+          <div class="field-row"><label for="gen-count">Počet variant</label><select id="gen-count"><option value="30">30 – rychlý test</option><option value="100" selected>100 – standard</option><option value="200">200 – hlubší prohledávání</option></select></div>
+          <div class="field-row"><label for="gen-seed">Seed náhodného generátoru</label><input type="number" id="gen-seed" value="42" min="0" max="99999999"></div>
+          <div class="field-row"><label for="gen-min-trades">Minimálně obchodů na IS</label><input id="gen-min-trades" type="number" value="5" min="2" max="100"></div>
+          <div class="field-row"><label for="gen-min-pf">Min. IS profit factor</label><input id="gen-min-pf" type="number" value="1.1" min="0" max="20" step="0.1"></div>
+          <button class="primary-btn big" id="run-generator" type="button">⚙ Generovat a testovat</button>
+          <button class="outline-btn wide" id="cancel-generator" type="button" disabled>Zastavit generování</button>
+          <div class="gen-progress"><div class="bar-track"><div id="gen-progress-bar"></div></div><span id="gen-progress-label">Připraveno.</span></div>
+          <div class="rule-hint">Kandidáty vybíráme podle IS výsledků. OOS se zobrazuje pouze jako nezávislá validace. Žádné automatické řazení podle budoucích OOS dat.</div>
+        </div>
+        <div class="panel analytics-panel">
+          <div class="section-header"><div><div class="panel-caption">TOP CANDIDATES · TRAINING ONLY</div><h3>Nejlepší nalezené varianty</h3></div><span id="gen-found" class="tag">0 kandidátů</span></div>
+          <div class="table-scroller"><table class="strategies-table"><thead><tr><th>#</th><th>Strategie</th><th>Směr</th><th>IS obchody</th><th>IS PF</th><th>IS průměr</th><th>OOS PF</th><th>Akce</th></tr></thead><tbody id="gen-results"><tr><td colspan="8" class="empty">Nastav parametry a spusť generátor.</td></tr></tbody></table></div>
+          <p class="validation-note">OOS není kritérium řazení ani filtrování. Strategie bez dostatečného počtu obchodů neprojdou výběrem.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-databank" class="tab-page" aria-labelledby="bank-heading">
+      <div class="page-heading"><div><div class="panel-caption">03 / SAVED RESEARCH</div><h2 id="bank-heading">Strategy Databank</h2><p>Vlastní pracovní knihovna strategií, nikoliv nákupní signály. Konfigurace se ukládají jen v tomto prohlížeči, bez API klíčů.</p></div><div class="heading-actions"><button id="import-json-trigger" class="outline-btn" type="button">↑ Importovat JSON</button><input id="import-json" type="file" accept=".json,application/json" hidden><button id="bank-export" class="outline-btn" type="button">↓ Export databanky</button></div></div>
+      <div class="panel analytics-panel"><div class="table-scroller"><table class="strategies-table"><thead><tr><th>Název</th><th>Směr</th><th>Pravidla</th><th>IS obchody</th><th>IS PF</th><th>OOS PF</th><th>Akce</th></tr></thead><tbody id="bank-results"><tr><td colspan="7" class="empty">Zatím nemáš uloženou žádnou strategii.</td></tr></tbody></table></div></div>
+    </section>
+
+    <section id="tab-robustness" class="tab-page" aria-labelledby="rob-heading">
+      <div class="page-heading"><div><div class="panel-caption">04 / VALIDATION</div><h2 id="rob-heading">Robustness Lab</h2><p>Ověř, co se stane při vyšších nákladech a jiném pořadí uzavřených obchodů.</p></div></div>
+      <div class="rob-grid">
+        <div class="panel form-panel">
+          <div class="panel-caption">MONTE CARLO · CLOSED TRADES</div><h3>Promíchání pořadí obchodů</h3><p>Počítáme 200 přeskupení existujících výsledků, bez vytváření nových cenových scénářů.</p>
+          <button id="run-robustness" class="primary-btn big" type="button">Spustit robustness test</button>
+          <div class="stat-cells rob-metrics">
+            <div><span>MC medián max DD</span><strong id="rob-dd50">—</strong></div>
+            <div><span>MC 95. percentil DD</span><strong id="rob-dd95">—</strong></div>
+            <div><span>Vyšší náklady: netto</span><strong id="rob-stress">—</strong></div>
+            <div><span>OOS obchodů</span><strong id="rob-oos-count">—</strong></div>
+          </div>
+          <p class="validation-note" id="robustness-note">Nejdřív proveď backtest v Rule Builderu.</p>
+        </div>
+        <div class="panel analytics-panel">
+          <div class="panel-caption">RISKS / WHAT IS NOT VERIFIED</div>
+          <h3>Ochrana proti přeoptimalizaci</h3>
+          <ul class="risk-list">
+            <li>OOS období je chronologicky oddělené – výběr variant podle OOS by vedl k dalšímu přeoptimalizování.</li>
+            <li>Monte Carlo pouze mění pořadí uzavřených obchodů; nezastupuje simulaci nových tržních podmínek.</li>
+            <li>Při SL i TP v jedné D1 svíčce volíme konzervativně nejdřív SL.</li>
+            <li>Záznamy neobsahují tickovou posloupnost, burzovní objem, split-adjustments, borrow fee nebo zaručenou realizovatelnost shortů.</li>
+            <li>300 D1 svíček je málo pro seriózní StrategyQuant-like generování; robustní výběr potřebuje několikaletou historii a více trhů.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+    <footer class="footer">© 2026 StockTool.eu · Strategy Lab v0.1 · Pouze výzkumný nástroj · Neprovádí obchody</footer>
+  </main>
+</div>
+<div id="toast" class="toast" role="status"></div>
+</body>
+</html>
