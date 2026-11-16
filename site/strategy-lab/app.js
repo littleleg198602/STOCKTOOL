@@ -11,7 +11,7 @@
   const STORAGE="stocktool_strategy_lab_bank_v1";
   const defaultConfig={
     name:"RSI Pullback D1",side:"LONG",join:"AND",exitJoin:"AND",
-    entry:[{type:"rsi_below",period:14,value:45},{type:"close_above_sma",period:50,value:0}],
+    entry:[{type:"rsi_below",period:14,value:65},{type:"close_above_sma",period:50,value:0}],
     exit:[{type:"rsi_above",period:14,value:62}],
     horizon:10,stopLoss:5,takeProfit:10,commission:1,spread:5,slippage:2,oos:30
   };
@@ -204,12 +204,12 @@
     if(!catalog.length)setDataState("Data Manager zatím nemá D1 datasety.");
   }
   async function loadData(quiet=false){
-    const requested=$("symbol").value.trim().toUpperCase();
-    if(!/^[A-Z0-9._:-]{1,30}$/.test(requested))return alertUser("Zadej platný ticker (např. AAPL).",true);
     if(!signedIn){
       try{await loginOnce();}
       catch(e){setConnection(e.message,true);return alertUser(e.message,true);}
     }
+    const requested=$("symbol").value.trim().toUpperCase();
+    if(!/^[A-Z0-9._:-]{1,30}$/.test(requested))return alertUser("Zadej platný ticker (např. AAPL).",true);
     const button=$("load-data");button.disabled=true;
     setDataState("Načítám "+requested+"…");
     try{
@@ -217,6 +217,12 @@
         encodeURIComponent(requested)+"&timeframe=D1&limit=5000");
       const verified=E.verifyBars(payload.bars||[]);
       marketBars=verified;marketContext=E.context(verified);dataSymbol=requested;
+      lastResult=null;
+      for(const id of ["m-trades","m-win","m-pf","m-net","m-dd","m-avg",
+        "is-trades","is-win","is-pf","is-avg","oos-trades","oos-win","oos-pf","oos-avg"])$(id).textContent="—";
+      $("download-trades").disabled=true;
+      $("trade-rows").replaceChildren();
+      drawChart();
       $("symbol").value=requested;
       $("bars-count").textContent=fmt(verified.length);
       $("bars-period").textContent=date(verified[0].t)+" — "+date(verified[verified.length-1].t);
