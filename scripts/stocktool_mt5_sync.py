@@ -229,6 +229,14 @@ def get_symbols(mt5, cfg: argparse.Namespace) -> list[str]:
                 bool(STOCK_PATH.search(str(getattr(s, "path", ""))))
             )
         })
+    if MARKET_SYNC:
+        # Even manual Market Watch/file selection must not silently import
+        # known equity instruments into the isolated market dataset.
+        stock_names = {s.name for s in symbols if STOCK_PATH.search(str(getattr(s, "path", "")))}
+        removed = [name for name in found if name in stock_names]
+        if removed:
+            log(f"ODFILTROVÁNO {len(removed)} akcií: Market data přijímají pouze neakciové instrumenty.")
+            found = [name for name in found if name not in stock_names]
     if len(found) > cfg.max_symbols:
         log(f"POZOR: nalezeno {len(found)} symbolů, limit je {cfg.max_symbols}. "
             "Pro kompletní pokrytí zvyš --max-symbols nebo použij --universe file.")
@@ -283,6 +291,8 @@ def preflight(api_key: str) -> None:
                     raise RuntimeError(f"{label}: server nevrátil ok:true.")
                 if label == "stav API" and not data.get("configured"):
                     raise RuntimeError("API ještě nemá nastavený soukromý config.php na FORPSI.")
+                if MARKET_SYNC and data.get("dataset") != "market":
+                    raise RuntimeError("Market konektor odmítá zapisovat mimo oddělenou Market MT5 databázi.")
         except (HTTPError, URLError, TimeoutError, OSError, ValueError) as exc:
             raise ConnectionError(f"Nelze provést {label} ({url}): {error_detail(exc)}") from exc
         log(f"OK: {label} – HTTPS funguje.")
@@ -306,6 +316,8 @@ def post_chunk(api_key: str, symbol: str, timeframe: str, bars: list[dict], dela
                 data = json.loads(response.read(100000).decode("utf-8"))
                 if not data.get("ok"):
                     raise RuntimeError("Server vrátil neúspěšnou odpověď.")
+                if MARKET_SYNC and data.get("dataset") != "market":
+                    raise RuntimeError("Přenos zastaven: server nepotvrdil správné Market úložiště.")
             if delay:
                 time.sleep(delay)
             return
