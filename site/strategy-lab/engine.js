@@ -59,7 +59,7 @@
       commission<0||commission>100||spread<0||spread>100||slippage<0||slippage>100||
       oos<15||oos>50)throw Error("Horizont, SL/TP, náklady nebo OOS jsou mimo povolený rozsah.");
     const symbol=String(x.symbol||"").toUpperCase().trim();
-    if(symbol&&!/^[A-Z0-9._:#@+\\-]{1,40}$/.test(symbol))throw Error("Neplatný ticker strategie.");
+    if(symbol&&!/^[A-Z0-9._:#@+-]{1,40}$/.test(symbol))throw Error("Neplatný ticker strategie.");
     const timeframe=String(x.timeframe||"D1").toUpperCase();
     if(!["H1","H4","D1","W1"].includes(timeframe))throw Error("Neplatný interval strategie.");
     return {
