@@ -101,3 +101,6 @@ body{background:radial-gradient(ellipse 660px 590px at 84% 0%,#70492336,transpar
  .toolbar-buttons{flex-wrap:wrap}
  .toolbar-buttons .btn{flex:auto}
 }
+
+/* Cross-link to no-code Strategy Lab */
+.hero .lab-link{margin-top:14px!important;font-size:12px!important}.lab-link a{color:#baf4dd;font-weight:770;text-decoration:underline;text-decoration-color:#448872;text-underline-offset:4px}.lab-link a:hover{color:#f9ca8f}
