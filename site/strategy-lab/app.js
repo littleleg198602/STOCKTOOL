@@ -226,7 +226,7 @@
     }
     const requested=$("symbol").value.trim().toUpperCase();
     const tf=$("timeframe").value;
-    if(!/^[A-Z0-9._:#@+\\-]{1,40}$/.test(requested))return alertUser("Zadej platný ticker z Market Data Manageru.",true);
+    if(!/^[A-Z0-9._:#@+-]{1,40}$/.test(requested))return alertUser("Zadej platný ticker z Market Data Manageru.",true);
     if(!["H1","H4","D1","W1"].includes(tf))return alertUser("Vyber platný interval.",true);
     if(catalogEntries.length && !catalogEntries.some(d=>
       String(d.symbol).toUpperCase()===requested && String(d.timeframe).toUpperCase()===tf)){
