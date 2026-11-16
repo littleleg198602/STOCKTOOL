@@ -1,0 +1,47 @@
+name: Market MT5 data split checks
+
+on:
+  push:
+    paths:
+      - 'site/market-data/**'
+      - 'site/strategy-lab/**'
+      - 'scripts/stocktool_mt5_sync.py'
+      - 'scripts/stocktool_mt5_market_sync.py'
+      - 'scripts/StockTool-MT5-MARKET-*.bat'
+      - 'tests/test_market_mt5_split.py'
+      - '.github/workflows/market-data-split-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  market-data:
+    name: Isolated MT5 market feed and Strategy Lab
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: none
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Python source validation
+        run: |
+          python -m py_compile scripts/stocktool_mt5_sync.py scripts/stocktool_mt5_market_sync.py
+          python -m unittest discover -s tests -p "test_market_mt5_split.py" -v
+      - name: PHP endpoint validation
+        run: |
+          for file in site/market-data/api/*.php; do php -l "$file"; done
+      - name: Browser source syntax
+        run: |
+          node --check site/market-data/app.js
+          node --check site/strategy-lab/app.js
+          node --check site/strategy-lab/engine.js
+          node tests/strategy_lab_engine_test.cjs
