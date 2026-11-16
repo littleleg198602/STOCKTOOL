@@ -1,0 +1,9 @@
+/* Market Data Manager uses same vetted viewer as Equity Data Manager, different colors. */
+@import url("../data-manager/styles.css?v=auth2");
+:root { --accent: #e3b577; }
+.page-heading h1 span,.eyebrow .status-dot { color: #f3ba80; }
+.version-tag { color:#ffdab1!important; border-color:#806044!important; background:#443327!important; }
+.local-notice { border-color:#72553c!important; background:#30261d!important; }
+.local-notice strong { color:#f4cb94!important; }
+.coverage-bar { border-color:#3b5560!important; }
+#connection-label { color:#eabf99; }
