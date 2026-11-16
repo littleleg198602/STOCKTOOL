@@ -57,7 +57,8 @@ $cache=mi_cached('overview_official_v1',900,static function():?array {
     $newsfeeds=[
         ['name'=>'Fed','url'=>'https://www.federalreserve.gov/feeds/press_all.xml'],
         ['name'=>'ECB','url'=>'https://www.ecb.europa.eu/rss/press.html'],
-        ['name'=>'BLS','url'=>'https://www.bls.gov/feed/bls_latest.rss']
+        ['name'=>'BLS','url'=>'https://www.bls.gov/feed/bls_latest.rss'],
+        ['name'=>'EIA','url'=>'https://www.eia.gov/rss/todayinenergy.xml']
     ];
     foreach($newsfeeds as $feed) {
         $raw=mi_get($feed['url']);
