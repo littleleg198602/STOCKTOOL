@@ -1,0 +1,25 @@
+name: Strategy Lab checks
+on:
+  push:
+    paths:
+      - 'site/strategy-lab/**'
+      - 'tests/strategy_lab_engine_test.cjs'
+      - '.github/workflows/strategy-lab-tests.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  strategy-lab:
+    name: Verify no-code engine and no-lookahead fills
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check Strategy Lab scripts
+        run: |
+          node --check site/strategy-lab/engine.js
+          node --check site/strategy-lab/app.js
+      - name: Run reproducible historical strategy tests
+        run: node tests/strategy_lab_engine_test.cjs
