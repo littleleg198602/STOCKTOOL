@@ -66,7 +66,7 @@ TIMEFRAME_SECONDS = {"M1": 60, "M5": 300, "M15": 900, "M30": 1800,
 STOCK_PATH = re.compile(r"stock|share|equit|equity|acciones|aktie|akcj", re.IGNORECASE)
 MARKET_PATH = re.compile(r"index|indice|indices|forex|currency|currenc|metal|commodity|commodit|energy|crypto|future|futures|fx|cfd|spot", re.IGNORECASE)
 NAME = re.compile(r"^[A-Za-z0-9._:-]{1,30}$")
-MARKET_NAME = re.compile(r"^[A-Za-z0-9._:#@+\\-]{1,40}$")
+MARKET_NAME = re.compile(r"^[A-Za-z0-9._:#@+-]{1,40}$")
 # Market wrapper enables extended broker-symbol support for file lists.
 MARKET_SYNC = False
 
