@@ -1,7 +1,7 @@
 "use strict";
-/* StockTool Strategy Lab v0.1 — client-side, no orders, no network.
- * LONG/SHORT single-symbol D1 bar model. Rules evaluated at close(i),
- * entry at open(i+1), stop/target resolved on known OHLC afterwards.
+/* StockTool Strategy Lab v0.2 — client-side, no orders, no network.
+ * LONG/SHORT single-symbol completed-bar model on H1/H4/D1/W1. Rules evaluated at close(i),
+ * entry at open(i+1), stop/target resolved on later available OHLC afterwards.
  * Conservative assumption when both stop and target touch: STOP first.
  */
 (function(root){
@@ -38,7 +38,7 @@
       seen.add(b.t);bars.push(b);
     }
     bars.sort((a,b)=>a.t-b.t);
-    if(bars.length<65)throw Error("Pro tento Strategy Lab je potřeba alespoň 65 validních D1 svíček.");
+    if(bars.length<65)throw Error("Pro tento Strategy Lab je potřeba alespoň 65 validních svíček.");
     return bars;
   }
   function config(input){
@@ -59,9 +59,11 @@
       commission<0||commission>100||spread<0||spread>100||slippage<0||slippage>100||
       oos<15||oos>50)throw Error("Horizont, SL/TP, náklady nebo OOS jsou mimo povolený rozsah.");
     const symbol=String(x.symbol||"").toUpperCase().trim();
-    if(symbol&&!/^[A-Z0-9._:-]{1,30}$/.test(symbol))throw Error("Neplatný ticker strategie.");
+    if(symbol&&!/^[A-Z0-9._:#@+\\-]{1,40}$/.test(symbol))throw Error("Neplatný ticker strategie.");
+    const timeframe=String(x.timeframe||"D1").toUpperCase();
+    if(!["H1","H4","D1","W1"].includes(timeframe))throw Error("Neplatný interval strategie.");
     return {
-      symbol,name:String(x.name||"Nová strategie").slice(0,90),side,join,exitJoin,horizon,
+      symbol,timeframe,name:String(x.name||"Nová strategie").slice(0,90),side,join,exitJoin,horizon,
       entry:x.entry.map(r=>({type:r.type,period:Number(r.period),value:Number(r.value)})),
       exit:(x.exit||[]).map(r=>({type:r.type,period:Number(r.period),value:Number(r.value)})),
       stopLoss:sl,takeProfit:tp,commission,spread,slippage,oos
