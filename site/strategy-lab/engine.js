@@ -58,8 +58,10 @@
     if(horizon<1||horizon>120||sl<0||sl>50||tp<0||tp>100||
       commission<0||commission>100||spread<0||spread>100||slippage<0||slippage>100||
       oos<15||oos>50)throw Error("Horizont, SL/TP, náklady nebo OOS jsou mimo povolený rozsah.");
+    const symbol=String(x.symbol||"").toUpperCase().trim();
+    if(symbol&&!/^[A-Z0-9._:-]{1,30}$/.test(symbol))throw Error("Neplatný ticker strategie.");
     return {
-      name:String(x.name||"Nová strategie").slice(0,90),side,join,exitJoin,horizon,
+      symbol,name:String(x.name||"Nová strategie").slice(0,90),side,join,exitJoin,horizon,
       entry:x.entry.map(r=>({type:r.type,period:Number(r.period),value:Number(r.value)})),
       exit:(x.exit||[]).map(r=>({type:r.type,period:Number(r.period),value:Number(r.value)})),
       stopLoss:sl,takeProfit:tp,commission,spread,slippage,oos
