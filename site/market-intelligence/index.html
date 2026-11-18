@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#0b1423">
-<meta name="description" content="StockTool Market Intelligence: News, Hot Stories, Economic Calendar a Forex Sessions s českým kontextem a časy Praha.">
+<meta name="description" content="StockTool: české tržní zprávy, hlavní makro témata, ekonomický kalendář pro hlavní měny a obchodní seance v českém čase.">
 <title>Zprávy a ekonomický kalendář | StockTool.eu</title>
 <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
 <link rel="stylesheet" href="./styles.css?v=cz3">
@@ -21,13 +21,13 @@
 </header>
 <main id="main" class="wrap">
   <section class="hero">
-    <div><div class="eyebrow"><span class="live-pulse"></span> STOCKTOOL / MACRO INTELLIGENCE</div>
+    <div><div class="eyebrow"><span class="live-pulse"></span> STOCKTOOL / TRŽNÍ PŘEHLED</div>
       <h1>Co dnes <em>hýbe trhem?</em></h1>
       <p>Zprávy, horká témata, ekonomický kalendář a obchodní seance na jednom místě. Srozumitelný český kontext pro indexy, měny, zlato a stříbro.</p>
     </div>
     <div class="hero-clock"><span>LOKÁLNÍ ČAS · PRAHA</span><strong id="prague-clock">--:--:--</strong><small id="prague-date">Načítám čas…</small></div>
   </section>
-  <section class="disclaimer"><strong>Nezávislé zpravodajství StockTool.</strong> Nezrcadlíme obsah Forex Factory. Zprávy pocházejí z veřejných oznámení Fed, ECB, BLS a EIA, ekonomická data ze zveřejněných plánů BEA/BLS. Nejde o kompletní globální kalendář ani o obchodní doporučení. <a href="https://www.forexfactory.com/" target="_blank" rel="noopener noreferrer">Forex Factory – originál ↗</a></section>
+  <section class="disclaimer"><strong>Nezávislé zpravodajství StockTool.</strong> Nezrcadlíme obsah Forex Factory. Zprávy pocházejí z oznámení Fedu, ECB, BLS a EIA. Kalendář kombinuje oficiální termíny BEA/BLS a dostupná data dalších měn od ShowMyTrades. Pro širší pokrytí lze otevřít povolený externí kalendář. Nejde o garanci úplnosti ani o obchodní doporučení. <a href="https://www.forexfactory.com/" target="_blank" rel="noopener noreferrer">Forex Factory – originál ↗</a></section>
   <section class="overview">
     <div class="metric"><span>Poslední zprávy</span><strong id="n-news">—</strong><small>Oficiální zdroje</small></div>
     <div class="metric"><span>Hot Stories</span><strong id="n-hot">—</strong><small>Náš tematický výběr</small></div>
@@ -124,7 +124,7 @@
                   <select id="cal-broker-offset"><option value="-5">UTC −5</option><option value="-4">UTC −4</option><option value="-3">UTC −3</option><option value="-2">UTC −2</option><option value="-1">UTC −1</option><option value="0">UTC ±0</option><option value="1">UTC +1</option><option value="2" selected>UTC +2</option><option value="3">UTC +3</option><option value="4">UTC +4</option><option value="5">UTC +5</option><option value="6">UTC +6</option><option value="7">UTC +7</option><option value="8">UTC +8</option><option value="9">UTC +9</option><option value="10">UTC +10</option><option value="11">UTC +11</option><option value="12">UTC +12</option></select>
                 </label>
                 <label class="cal-check"><input id="cal-only-upcoming" type="checkbox"> Jen nadcházející</label>
-                <label>Režim <select id="cal-view"><option value="compact">Compact – trader</option><option value="insight">Insight – vysvětlení</option></select></label>
+                <label>Režim <select id="cal-view"><option value="compact">Kompaktní tabulka</option><option value="insight">Podrobný pohled</option></select></label>
                 <button id="cal-reset-filters" type="button" class="cal-reset">Vymazat filtry</button>
               </div>
             </details>
@@ -159,6 +159,7 @@
       <div class="traderwaves-widget" data-widget="economic-calendar">
         Economic calendar by <a href="https://traderwaves.com/?utm_source=widget&utm_medium=embed&utm_campaign=economic-calendar" rel="noopener" target="_blank">TraderWaves</a>
       </div>
+      <p id="cal-global-error" class="cal-world-error" role="status"></p>
       <p class="cal-world-disclaimer">Externí widget načítá data přímo od TraderWaves. StockTool zde nepřebírá ani neupravuje jeho hodnoty. Pokud jej prohlížeč blokuje, otevři <a href="https://traderwaves.com/business/widgets/economic-calendar" target="_blank" rel="noopener noreferrer">původní kalendář ↗</a>.</p>
     </div>
   </section>
