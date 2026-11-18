@@ -129,45 +129,14 @@
     }
     for(const item of data.hot)list.append(createStory(item,true));
   }
-  function impactAllows(impact,filter) {
-    return filter==="all"||(filter==="high"&&impact==="high")||
-      (filter==="medium"&&(impact==="high"||impact==="medium"));
-  }
-  function drawCalendar(){
-    const tbody=$("calendar-body");tbody.replaceChildren();
-    const range=$("calendar-range").value;
-    const impact=$("calendar-impact").value;
-    const source=$("calendar-source").value;
-    const now=Math.floor(Date.now()/1000);
-    const from=range==="past"?now-7*86400:
-      ($("calendar-only-future").checked?now:now-86400);
-    const to=range==="past"?now:now+Number(range)*86400;
-    const items=data.calendar.filter(item=>item.time>=from&&item.time<=to&&
-      (source==="all"||item.source===source)&&impactAllows(item.impact,impact));
-    if(!items.length){
-      const tr=el("tr"),td=el("td","","Žádné události z BEA/BLS v tomto filtru; neznamená to, že na světových trzích nebudou zprávy.");
-      td.colSpan=5;tr.append(td);tbody.append(tr);
-    }else{
-      let prevDate="";
-      for(const item of items){
-        const time=new Date(item.time*1000);
-        const date=fmtDate.format(time);
-        if(date!==prevDate){
-          const day=el("tr","day-row"),td=el("td","",fmtLong.format(time));
-          td.colSpan=5;day.append(td);tbody.append(day);prevDate=date;
-        }
-        const tr=el("tr"),when=el("td","",date+" "+fmtTime.format(time));
-        const currency=el("td","",item.currency||"USD");
-        const imp=el("td");imp.append(badge(item.impact));
-        const name=el("td");
-        name.append(el("div","event-name",item.name_cs||item.name_original));
-        if(item.name_cs!==item.name_original)name.append(el("div","event-en",item.name_original));
-        name.append(el("div","event-context",item.context_cs||""));
-        const src=el("td");src.append(foreignLink(item.url,item.source+" ↗"));
-        tr.append(when,currency,imp,name,src);tbody.append(tr);
-      }
-    }
-    $("calendar-foot").textContent="Zobrazeno "+items.length+" událostí z dostupných zdrojů. *Důležitost vypočítává StockTool podle tématu, nikoliv Forex Factory. Všechny časy: Europe/Prague.";
+  // Calendar v2 is maintained by calendar-v2.js; the public data payload
+  // arrives through a single event so News/Hot/Sessions keep working.
+  function publishCalendarEvents(payload) {
+    document.dispatchEvent(new CustomEvent("stocktool:calendar-data",{
+      detail:{events:data.calendar,updated_at:data.updated_at,
+        stale:data.stale,data_available:!!payload.data_available,
+        sources:data.sources}
+    }));
   }
   function tzParts(date,tz){
     let formatter=tzFormatters.get(tz);
@@ -292,7 +261,7 @@
       data.translation_enabled=!!payload.translation_enabled;
       data.sources=Array.isArray(payload.sources)?payload.sources:[];
       lastError=payload.data_available?"":"Oficiální zdroje momentálně neodpovídají";
-      drawNews();drawHot();drawCalendar();drawStats();
+      drawNews();drawHot();publishCalendarEvents(payload);drawStats();
     }catch(e){
       lastError=e.message;
       if(!silent){
@@ -300,6 +269,7 @@
         $("hot-list").replaceChildren(el("div","empty","Zpravodajský zdroj není dostupný."));
       }
       drawStats();
+      publishCalendarEvents({data_available:false});
     }finally{$("refresh-data").disabled=false;}
   }
   function init(){
@@ -309,8 +279,6 @@
     for(const id of ["news-topic","news-source"])
       $(id).addEventListener("change",drawNews);
     $("news-search").addEventListener("input",drawNews);
-    for(const id of ["calendar-range","calendar-impact","calendar-source","calendar-only-future"])
-      $(id).addEventListener("change",drawCalendar);
     $("refresh-data").addEventListener("click",()=>loadData());
     const requestedTab=new URLSearchParams(window.location.search).get("tab");
     if(["news","hot","calendar","sessions"].includes(requestedTab))switchTab(requestedTab);
