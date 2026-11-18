@@ -52,7 +52,7 @@ function mi_translate_deepl(array $stories): array {
     }
     return [$stories,true];
 }
-$cache=mi_cached('overview_official_v1',900,static function():?array {
+$cache=mi_cached('overview_official_v2',900,static function():?array {
     $now=time();$stories=[];$events=[];$sources=[];
     $newsfeeds=[
         ['name'=>'Fed','url'=>'https://www.federalreserve.gov/feeds/press_all.xml'],
@@ -83,7 +83,7 @@ $cache=mi_cached('overview_official_v1',900,static function():?array {
     $blsEvents=is_string($bls)?mi_parse_bls_ics($bls,$now):[];
     $sources[]=['name'=>'BLS calendar','ok'=>count($blsEvents)>0,'url'=>'https://www.bls.gov/schedule/2026/home.htm'];
     $events=mi_unique_events(array_merge($beaEvents,$blsEvents));
-    $events=array_slice($events,0,400);
+    $events=array_slice($events,0,1200);
     // Critical: no fabricated results if official feeds are unavailable.
     // Cache even an outage/empty source response for 15 minutes to avoid
     // hammering official endpoints from shared hosting.
@@ -99,12 +99,12 @@ $cache=mi_cached('overview_official_v1',900,static function():?array {
         'news'=>$stories,'hot'=>$hot,'calendar'=>$events,'sources'=>$sources,
         'translation_enabled'=>$deeplAvailable,
         'hot_method'=>'Vlastní tematický výběr StockTool podle klíčových makro témat a stáří článku; není to žebříček popularity Forex Factory.',
-        'calendar_note'=>'Kalendář oficiálních oznámení USA od BEA a BLS. Není to kompletní světový Forex Factory kalendář. Skutečnost/předpověď/předchozí hodnota zde nejsou poskytovány.'
+        'calendar_note'=>'Ověřené termíny BEA/BLS USA s přibližně roční historií a plánem. Actual, Forecast, Previous ani historické grafy zatím nejsou dostupné; nesmějí se dopočítat.'
     ];
 });
 $payload=$cache['items'];
 mi_reply([
-    'ok'=>true,'version'=>'market-intelligence-v0.1',
+    'ok'=>true,'version'=>'market-intelligence-v0.2',
     'updated_at'=>$cache['updated_at'],'stale'=>$cache['stale'],
     'data_available'=>count($payload['news']??[])>0||count($payload['calendar']??[])>0,
     'news'=>$payload['news']??[],'hot'=>$payload['hot']??[],
