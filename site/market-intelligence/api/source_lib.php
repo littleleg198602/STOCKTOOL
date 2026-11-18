@@ -34,6 +34,53 @@ function mi_get(string $url): ?string {
     $status=$http_response_header[0]??'';
     return preg_match('~^HTTP/\S+\s+200\b~',$status)?$body:null;
 }
+/**
+ * Parallel retrieval of fixed issuer endpoints; at most ~8 s wall time.
+ * All URLs originate from the server-side allowlisted manifest, never clients.
+ */
+function mi_get_many(array $urls): array {
+    $results=[];
+    $urls=array_values(array_unique(array_filter($urls,static fn($u)=>
+        is_string($u)&&str_starts_with($u,'https://'))));
+    if(!function_exists('curl_multi_init')){
+        foreach($urls as $url)$results[$url]=mi_get($url);
+        return $results;
+    }
+    $multi=curl_multi_init();$handles=[];
+    foreach($urls as $url){
+        $host=parse_url($url,PHP_URL_HOST);
+        if(!in_array($host,[
+          'www.federalreserve.gov','www.ecb.europa.eu','www.bls.gov',
+          'www.eia.gov','apps.bea.gov','showmytrades.com'
+        ],true))continue;
+        $ch=curl_init($url);
+        curl_setopt_array($ch,[
+            CURLOPT_RETURNTRANSFER=>true,CURLOPT_FOLLOWLOCATION=>false,
+            CURLOPT_CONNECTTIMEOUT=>2,CURLOPT_TIMEOUT=>7,
+            CURLOPT_SSL_VERIFYPEER=>true,CURLOPT_MAXREDIRS=>0,
+            CURLOPT_USERAGENT=>'StockTool.eu/0.3 (economic research, official feeds)',
+            CURLOPT_HTTPHEADER=>['Accept: application/json, application/rss+xml, text/calendar, */*']
+        ]);
+        curl_multi_add_handle($multi,$ch);
+        $handles[]=['url'=>$url,'ch'=>$ch];
+    }
+    $running=0;$status=CURLM_OK;$deadline=microtime(true)+8;
+    do{
+        $status=curl_multi_exec($multi,$running);
+        if($running&&$status===CURLM_OK&&microtime(true)<$deadline)
+            curl_multi_select($multi,0.45);
+        else break;
+    }while($running&&microtime(true)<$deadline);
+    foreach($handles as $item){
+        $ch=$item['ch'];$url=$item['url'];
+        $code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);
+        $body=curl_multi_getcontent($ch);
+        $results[$url]=$code===200&&is_string($body)&&strlen($body)<=2000000?$body:null;
+        curl_multi_remove_handle($multi,$ch);curl_close($ch);
+    }
+    curl_multi_close($multi);
+    return $results;
+}
 function mi_cache_dir(): string {
     $base=dirname(__DIR__,4).DIRECTORY_SEPARATOR.'stocktool-private'.DIRECTORY_SEPARATOR.'intelligence-cache';
     if(!is_dir($base))@mkdir($base,0700,true);
