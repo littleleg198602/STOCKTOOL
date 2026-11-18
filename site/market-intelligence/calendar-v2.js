@@ -236,6 +236,10 @@
     scope.textContent=state.global_calendar_active?
       "9 měn · ShowMyTrades + oficiální BEA/BLS":
       "Pouze oficiální termíny BEA/BLS (poskytovatel 9 měn nedostupný)";
+    const note=$("cal-data-note");
+    if(note)note.textContent=state.global_calendar_active?
+      "Mezinárodní události: ShowMyTrades, devět hlavních měn. Skutečnost, odhad a předchozí hodnotu ukazujeme jen tehdy, když je zdroj skutečně poskytne. Historické a vzdálenější americké termíny doplňují BEA/BLS bez konsensu. „—“ neznamená nulu.":
+      "Mezinárodní datový zdroj je teď nedostupný. Zobrazují se pouze oficiální plánované termíny USA z BEA/BLS, které neobsahují odhady ani výsledky. Žádné hodnoty nedopočítáváme. Zkus stránku později obnovit.";
     holder.replaceChildren();
     if(!a||!state.global_calendar_active){holder.hidden=true;return;}
     let u;
