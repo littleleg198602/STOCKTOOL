@@ -27,7 +27,8 @@
     selected:C.today(),monthCursor:C.monthStart(C.today()),mode:"week",
     timeZone:"prague",brokerOffset:2,currency:"all",impact:"all",category:"all",
     source:"all",search:"",onlyUpcoming:false,view:"compact",
-    events:[],loaded:false,stale:false,error:false,expanded:new Set(),focusEvent:""
+    events:[],loaded:false,stale:false,error:false,expanded:new Set(),focusEvent:"",
+    global_calendar_active:false,attribution:null
   };
   const timezoneLabel=()=>state.timeZone==="utc"?"UTC":
     state.timeZone==="broker"?"MT5 (UTC "+(state.brokerOffset>=0?"+":"")+state.brokerOffset+")":"Praha (CET/CEST)";
@@ -89,8 +90,8 @@
     }
   }
   function impactBadge(impact){
-    const types={high:"Vysoká",medium:"Střední",low:"Nízká"};
-    const type=Object.hasOwn(types,impact)?impact:"low";
+    const types={high:"Vysoká",medium:"Střední",low:"Nízká",holiday:"Svátek"};
+    const type=Object.prototype.hasOwnProperty.call(types,impact)?impact:"low";
     const wrapper=node("span","cal-impact-badge");
     wrapper.append(node("i","cal-impact "+type),node("span","",types[type]));
     return wrapper;
@@ -109,6 +110,8 @@
       node("span","","Zdroj: "+(event.source||"—")),
       node("span","","Čas: "+(C.zoneDate(event.time,state.timeZone,state.brokerOffset)?.time||"—")+" "+timezoneLabel()));
     body.append(kv);
+    if(event.period)body.append(node("p","cal-period-label","Období zveřejnění: "+event.period));
+    if(event.status==="tentative")body.append(node("p","cal-period-label","Pozor: přesný termín zatím není potvrzen."));
     body.append(node("p","cal-detail-warning",
       "Actual: "+C.value(event.actual)+" · Forecast: "+C.value(event.forecast)+
       " · Previous: "+C.value(event.previous)+". Chybějící údaje nejsou nuly a čas události není predikcí pohybu trhu."));
@@ -219,10 +222,52 @@
       .sort((a,b)=>a.time-b.time);
     state.loaded=true;state.error=!!payload.error;
     state.stale=!!payload.stale;
+    state.global_calendar_active=!!payload.global_calendar_active;
+    state.attribution=payload.calendar_attribution||null;
+    renderAttribution();
     options("cal-currency",[...new Set(state.events.map(e=>e.currency).filter(Boolean))].sort(),"Všechny dostupné");
     options("cal-source",[...new Set(state.events.map(e=>e.source).filter(Boolean))].sort(),"Všechny dostupné");
     state.currency=$("cal-currency").value;state.source=$("cal-source").value;
     renderAll();
+  }
+  function renderAttribution(){
+    const holder=$("cal-provider-credit"),scope=$("cal-source-scope");
+    const a=state.attribution;
+    scope.textContent=state.global_calendar_active?
+      "9 měn · ShowMyTrades + oficiální BEA/BLS":
+      "Pouze oficiální termíny BEA/BLS (poskytovatel 9 měn nedostupný)";
+    holder.replaceChildren();
+    if(!a||!state.global_calendar_active){holder.hidden=true;return;}
+    let u;
+    try{u=new URL(a.url);
+      if(u.protocol!=="https:"||!["showmytrades.com","www.showmytrades.com"].includes(u.hostname))throw Error("Nesprávný zdroj");
+    }catch{holder.hidden=true;return;}
+    const label=typeof a.text==="string"&&a.text.trim()?a.text.trim():"Economic calendar by ShowMyTrades";
+    holder.append(node("span","","Mezinárodní data, výsledky a odhady: "));
+    const credit=node("a","",label);credit.href=u.href;
+    credit.target="_blank";credit.rel="noopener noreferrer";holder.append(credit);
+    holder.hidden=false;
+  }
+  let widgetLoaded=false;
+  function setCalendarMode(world){
+    $("cal-native-view").hidden=world;
+    $("cal-world-view").hidden=!world;
+    $("cal-mode-local").classList.toggle("active",!world);
+    $("cal-mode-world").classList.toggle("active",world);
+    $("cal-mode-local").setAttribute("aria-pressed",String(!world));
+    $("cal-mode-world").setAttribute("aria-pressed",String(world));
+    if(world&&!widgetLoaded){
+      widgetLoaded=true;
+      // Official, voluntarily embeddable TraderWaves widget, explicitly
+      // credit-linked in the markup; do not replicate or scrape their data.
+      const script=document.createElement("script");
+      script.async=true;script.src="https://traderwaves.com/app/embed/v1/loader.js";
+      script.onerror=()=>{
+        const el=$("cal-global-error");
+        if(el)el.textContent="Externí widget se nepodařilo načíst. Použij odkaz na web poskytovatele.";
+      };
+      document.body.append(script);
+    }
   }
   function upNext(){
     const result=C.nextEvent(state.events,state);
@@ -260,6 +305,8 @@
       updateFilters();$("cal-filter-panel").open=false;
     });
     document.addEventListener("stocktool:calendar-data",receiveData);
+    $("cal-mode-local").addEventListener("click",()=>setCalendarMode(false));
+    $("cal-mode-world").addEventListener("click",()=>setCalendarMode(true));
     renderAll();
   }
   document.addEventListener("DOMContentLoaded",init);
