@@ -516,3 +516,52 @@ Graf po 15 minutách ukazuje časovou osu od -12h do +12h v pražském čase. Jd
 5. Offline kontrola: \`php tests/market_intelligence_test.php\`; JS \`node --check site/market-intelligence/app.js\`. Pro GitHub je připravené CI.
 
 **Důležité omezení v0.1:** Spuštění PHP na skutečném FORPSI nad externími feedy a DeepL (není nastaven) se ověří až po webovém deployi. Teprve pak uvidíme, zda všechny oficiální servery povolují přístup z IP hostingu. StockTool nezajišťuje licencovaný Bloomberg/Reuters/ForexFactory zpravodajský přenos.
+
+
+---
+
+## Calendar v2 – kompaktní ekonomický kalendář (Market Intelligence v0.2)
+
+**Web po nasazení přes Deploy v3:** https://www.stocktool.eu/test/market-intelligence/?tab=calendar
+
+Tato změna nahrazuje původní jednoduchou tabulku v aplikaci 09 kompaktním **Trader View**, vycházejícím z uživatelsky praktického rozvržení Forex Factory, ale s vlastním designem, logikou a oficiálními zdroji. **Forex Factory není scrapován, kopírován ani zrcadlen.** Záložky **News, Hot Stories a Sessions** zůstaly funkční.
+
+### Funkce Calendar v2
+
+- **Výchozí zhuštěný pracovní pohled** při otevření aplikace: místo vysokého úvodního dashboardu se hned zobrazuje kalendář.
+- **Levý mini kalendář** s měsíčními šipkami, označením dnešního dne, vybraného období a dnů s událostmi.
+- **Rychlá navigace:** dnes, zítra, tento/příští/minulý týden, tento/příští/minulý měsíc; klik na datum nastaví denní pohled.
+- **Navigace nahoře:** minulé/následující období, dnes a **Up Next** (nejbližší budoucí událost vyhovující nastaveným filtrům).
+- **Hustá tabulka 10 sloupců:** Den, Čas, Měna, Impact, Událost, Detail, Actual, Forecast, Previous, Graf. Události se řadí chronologicky a sdružují do samostatných denních bloků.
+- **Vyhledávání a kombinované filtry:** měna, tematická důležitost, kategorie, instituce, nadcházející události, přepínač Compact/Insight.
+- **Detail události:** český standardizovaný název, případný originál, obecný český tematický kontext, původní zdroj a případné dostupné výsledky. Žádné odhadované obchodní signály.
+- **Časová pásma:** Praha \`Europe/Prague\` s automatickým CET/CEST, UTC nebo ručně nastavený fixní UTC offset pro druhý MT5. Brokerův offset si musí uživatel ověřit (nelze bezpečně odhadnout DST nastavení každého brokera).
+- **Deep linky:** \`?tab=calendar&date=2026-11-18&event=<64hex>\`; Strategy Lab na konkrétní makro událost odkazuje přímo.
+- **Omezení výchozího pohledu** na oficiální zveřejnění BEA/BLS USA (typicky USD). Ostatní země/měny se objeví až po přidání oficiálního nebo licencovaného zdroje. Prázdné řádky se nevytváří. Odkaz na původní globální kalendář Forex Factory je vždy dostupný.
+
+**Interpretace Actual / Forecast / Previous:** Stávající BEA/BLS feedy poskytují plánované termíny. Neobsahují v tomto exportu výsledky ani konsensus. Prázdná hodnota se proto zobrazí jako \`—\`, zatímco skutečná numerická nula se zobrazuje jako \`0\`. Barevný výsledek proti konsenzu je dovolen pouze při existenci jak dvou hodnot, tak explicitně ověřeného významu směru překvapení (\`better_direction\` od legitimního poskytovatele). Čísla, historii ani grafy nesmíme vytvářet heuristicky.
+
+### Technické změny
+
+- \`site/market-intelligence/index.html\` – nové HTML pracovní prostředí.
+- \`site/market-intelligence/styles.css\` – hustá tabulka, mini kalendář, panely, kompaktní režim, mobilní layout.
+- \`site/market-intelligence/calendar-core.js\` – čisté funkce pro datum, ISO týdny, CET/CEST, filtry a up-next.
+- \`site/market-intelligence/calendar-v2.js\` – přepínání období, ovládání, rozbalovací detail a tabulka. Nevyužívá HTML injekci z externího zdroje: uživatelské texty a názvy událostí se vkládají pomocí \`textContent\`.
+- \`site/market-intelligence/app.js\` – NEWS/HOT/SESSIONS dále běží jako předtím; na \`stocktool:calendar-data\` předává calendar-v2 pouze jednu společnou serverovou odpověď.
+- \`site/market-intelligence/api/source_lib.php\` – pro BEA/BLS uchovává dostupné termíny přibližně 13 měsíců zpětně i dopředu, aby fungovala historická navigace.
+- \`site/market-intelligence/api/overview.php\` – zvýšen limit událostí na 1200, nová cache \`overview_official_v2\` pro okamžitou invalidaci staršího 65denního výběru, verze \`market-intelligence-v0.2\`.
+- \`site/strategy-lab/app.js\` a \`site/strategy-lab/index.html\` – makro upozornění odkazuje na přesné datum a id události v Calendar v2.
+- \`tests/calendar_v2_test.cjs\` – 11 offline regresních testů zahrnuje DST, datum, týdny, filtry, nulové hodnoty.
+- \`tests/calendar_v2_ui_test.cjs\` – bez externích závislostí testuje mini kalendář, event feed, Up Next, tabulku, rozbalení detailu a filtry.
+- \`.github/workflows/market-intelligence-tests.yml\` – doplněno ověření obou nových JS modulů a obou testů.
+
+### Jak vyzkoušet
+
+1. Spustit stávající \`Deploy-StockTool.bat v3\` do \`/stocktool.eu/www/test/\`.
+2. Otevřít https://www.stocktool.eu/test/market-intelligence/?tab=calendar a stisknout \`Ctrl+F5\`.
+3. Vyzkoušet šipky týdne, kalendář vlevo, filtry a tlačítko \`Up Next\`.
+4. Otevřít detail některého skutečně dostupného amerického zveřejnění, ověřit originál a český čas.
+5. V Market Data → Strategy Lab kliknout na nejbližší událost: měl by se otevřít přímo detail stejné události v Calendar v2.
+6. Pokud zůstanou tabulky prázdné, ověřit PHP odchozí HTTPS na BEA/BLS a stav zdrojů; nesnažit se prázdné údaje nahradit simulovanými termíny.
+
+Testy: \`node tests/calendar_v2_test.cjs\` a \`node tests/calendar_v2_ui_test.cjs\`; Python/MT5 synchronizátor ani původní akciové analýzy se nemění. Ověření nových endpointů na reálném FORPSI hostingu je stále nutné po nasazení.
