@@ -3,6 +3,7 @@ declare(strict_types=1);
 /** Offline regressions: php tests/market_intelligence_test.php */
 define('STOCKTOOL_INTELLIGENCE',true);
 require dirname(__DIR__).'/site/market-intelligence/api/source_lib.php';
+require dirname(__DIR__).'/site/market-intelligence/api/calendar_provider.php';
 function check(bool $ok,string $message):void {
     if(!$ok)throw new RuntimeException('FAIL '.$message);
     echo "PASS $message\n";
@@ -58,6 +59,48 @@ $news=mi_parse_rss($rss,'Fed');
 check(count($news)===1,'Official RSS link valid HTTPS; javascript URL rejected');
 check($news[0]['source']==='Fed','News is attributed to original issuer');
 check($news[0]['published_at']===$today,'RSS RFC822 timestamp preserved');
-check($news[0]['title_cs']===null&&!$news[0]['translated'],
-    'Never label untranslated headline as Czech');
+check(is_string($news[0]['title_cs'])&&str_contains($news[0]['title_cs'],'Fed:')&&
+      !$news[0]['translated']&&($news[0]['localization']??'')==='topic_summary',
+    'Czech summary must be visibly distinct from a verified translation');
+
+check(mi_cz_event_title('Core CPI m/m')==='Jádrová inflace (CPI) · meziměsíčně',
+    'Core CPI and monthly qualifiers stay distinct');
+check(mi_cz_event_title('GDP Price Index q/q')==='Cenový deflátor HDP · mezikvartálně',
+    'GDP deflator is not conflated with real GDP');
+
+$ts=$today+8*86400;
+$providerFixture=json_encode([
+    'events'=>[
+        ['id'=>'usd-cpi-mom.test-001','ts'=>$ts,'title'=>'Core CPI m/m',
+          'currency'=>'USD','impact'=>'high','forecast'=>'0.3%','actual'=>'0.0%',
+          'previous'=>'0.2%','status'=>'scheduled'],
+        ['id'=>'eur-ecb-rate.test-002','ts'=>$ts+3600,'title'=>'ECB Rate Decision',
+          'currency'=>'EUR','impact'=>'high','forecast'=>null,'actual'=>null,
+          'previous'=>'0','status'=>'scheduled'],
+        ['id'=>'invalid','ts'=>$ts,'title'=>'Invalid currency',
+          'currency'=>'FOO','impact'=>'high','forecast'=>null],
+    ],
+    'attribution'=>[
+        'required'=>false,
+        'text'=>'Economic calendar by ShowMyTrades',
+        'url'=>'https://showmytrades.com/tools/economic-calendar'
+    ]
+],JSON_UNESCAPED_UNICODE);
+$smt=mi_parse_smt($providerFixture,$today);
+check(is_array($smt)&&count($smt['events'])===2,
+    'Public calendar returns only valid major FX currencies');
+check($smt['events'][0]['actual']==='0.0%'&&$smt['events'][1]['previous']==='0',
+    'Real zero is kept distinct from missing source figures');
+check($smt['events'][1]['forecast']===null,'Missing forecast stays null');
+check($smt['events'][0]['name_cs']==='Jádrová inflace (CPI) · meziměsíčně',
+    'Imported foreign currency events get Czech indicator labels');
+check($smt['attribution']['required']===true&&
+    $smt['attribution']['url']==='https://showmytrades.com/tools/economic-calendar',
+    'External provider must receive visible data credit');
+
+$merged=mi_merge_calendar($b,$smt['events'],$today);
+check(count($merged)>=2,'Merger contains both valid international and official events');
+check(mi_parse_smt('{"error":"down"}',$today)===null,
+    'External API outage is not fabricated and triggers official fallback');
+
 echo "\nMarket Intelligence offline parser regression tests passed.\n";
