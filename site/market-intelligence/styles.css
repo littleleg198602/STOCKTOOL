@@ -17,3 +17,141 @@
 @media(max-width:740px){.wrap{width:calc(100% - 28px)}.topbar{height:65px;padding:0 15px}.top-links a:not(:last-child){display:none}.hero{flex-direction:column;align-items:flex-start;padding:34px 0 25px;gap:22px}.hero h1{font-size:46px}.hero-clock{width:100%;flex-direction:row;align-items:center;justify-content:space-between}.hero-clock strong{font-size:26px}.hero-clock small{display:none}.tabnav{gap:0}.tab{font-size:11px;padding:12px 10px}.tab-icon{font-size:16px}.section-heading{flex-direction:column;align-items:flex-start}.hot-grid{grid-template-columns:1fr}.story{grid-template-columns:55px minmax(0,1fr);padding:17px 15px;gap:12px}.story-icon{width:49px;height:49px}.story-actions{grid-column:2;flex-direction:row;flex-wrap:wrap}.story h3{font-size:15px}.session-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.below-panels{grid-template-columns:1fr}.toolbar{padding:14px}.field{flex:1;min-width:130px}}
 @media(max-width:480px){.hero h1{font-size:38px}.brand{font-size:16px}.overview{gap:9px}.metric{padding:13px}.metric strong{font-size:26px}.tab{padding:12px 8px;gap:5px}.tab-icon{display:none}.session-grid{grid-template-columns:1fr}.hero-clock{min-width:0}.hero-clock span{font-size:9px}.field{flex:1 1 100%}.source-links{gap:13px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;animation:none!important}}
+
+/* Calendar v2 — compact trader-oriented layout (independent visual identity) */
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+.calendar-v2-panel{min-height:520px}
+.calendar-heading{margin-bottom:19px}
+.cal-shell{display:grid;grid-template-columns:218px minmax(0,1fr);gap:14px;align-items:start}
+.cal-sidebar{background:#122236;border:1px solid #314960;border-radius:10px;overflow:hidden}
+.cal-side-section{padding:16px 14px;border-bottom:1px solid #2d455b}
+.cal-side-head{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:13px}
+.cal-side-head strong{font-size:13px;letter-spacing:-.02em;text-transform:capitalize}
+.cal-month-arrows{display:flex;gap:4px}
+.cal-icon-btn{border:1px solid #395972;background:#1b3349;color:#b9dbe9;border-radius:5px;width:27px;height:27px;font-size:20px;line-height:1}
+.cal-icon-btn:hover{background:#2a5165;color:#fff}
+.cal-weekdays,.cal-month-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
+.cal-weekdays{margin-bottom:5px}
+.cal-weekdays span{text-align:center;color:#86a7b8;font-size:10px;font-weight:750}
+.cal-date-button{position:relative;display:grid;place-items:center;width:100%;min-width:0;aspect-ratio:1;background:transparent;border:1px solid transparent;color:#bdcfdf;border-radius:5px;font-size:11px;font-weight:650;line-height:1}
+.cal-date-button:hover{background:#33506a;border-color:#537f9c;color:#fff}
+.cal-date-button.other-month{color:#587184}
+.cal-date-button.within-period{background:#1b4b48;color:#c7f6e9}
+.cal-date-button.today{border-color:#e6b978;color:#ffe6bb}
+.cal-date-button.selected{background:#4ddcb5;color:#082b24;border-color:#5defc8;font-weight:850}
+.cal-date-button.has-event:after{content:"";position:absolute;bottom:2px;left:calc(50% - 1.5px);width:3px;height:3px;border-radius:50%;background:#f5c78b}
+.cal-date-button.selected.has-event:after{background:#164d3d}
+.cal-side-label{font:750 10px ui-monospace,Consolas,monospace;color:#78adbc;letter-spacing:1.25px;margin-bottom:9px}
+.cal-quick{display:grid;gap:2px}
+.cal-quick button{border:0;background:transparent;color:#a8c4d2;text-align:left;padding:7px 10px;border-radius:6px;font-size:11px;font-weight:690;cursor:pointer}
+.cal-quick button:hover{background:#233a50;color:#fff}
+.cal-quick button.active{background:#174c43;color:#a3f9d9}
+.cal-side-legend{display:flex;flex-direction:column;gap:8px}
+.cal-side-legend span{display:flex;align-items:center;gap:9px;font-size:10px;color:#acc5d2}
+.cal-side-legend small{font-size:9px;line-height:1.7;color:#7e9cae}
+.cal-side-external{padding:14px;background:#1a2b3c}
+.cal-side-external a{font-size:10px;line-height:1.6;color:#b2dfec;text-decoration:underline;text-underline-offset:3px}
+.cal-main{min-width:0;background:#111e2d;border:1px solid #304a62;border-radius:10px;overflow:visible}
+.cal-topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:13px;background:#243b59;border-radius:9px 9px 0 0;border-bottom:1px solid #3d5871}
+.cal-week-control,.cal-top-actions{display:flex;align-items:center;gap:7px}
+.cal-week-control{min-width:0;flex:1}
+.cal-week-control strong{font-size:13px;line-height:1.4;color:#f2f8fc;white-space:nowrap;text-transform:capitalize;min-width:160px}
+.cal-arrow{border:1px solid #53708c;border-radius:5px;background:#304b69;color:#d9e9f7;padding:1px 10px;font-size:21px;line-height:1.3}
+.cal-arrow:hover{background:#3c6989}
+.cal-today,.cal-top-action{border:1px solid #4e7592;border-radius:6px;background:#233e5b;color:#c7e3f1;font-size:10px;font-weight:740;white-space:nowrap;padding:9px 10px}
+.cal-today:hover,.cal-top-action:hover{background:#355a77;color:#fff}
+.cal-top-action{color:#b8f3d9;border-color:#478d83;background:#234843}
+.cal-search-label{max-width:200px;min-width:120px;flex:1}
+.cal-search-label input{width:100%;min-width:0;background:#162a42;color:#e8f7f9;border:1px solid #52708c;border-radius:6px;padding:9px 10px;font-size:10px;outline:none}
+.cal-search-label input:focus{border-color:#63e0bc}
+.cal-search-label input::placeholder{color:#8eabc1}
+.cal-filter-panel{position:relative;z-index:10}
+.cal-filter-panel summary{cursor:pointer;list-style:none;border:1px solid #577b9a;background:#23415f;color:#d4e5f2;border-radius:6px;padding:9px 11px;font-size:10px;font-weight:750;white-space:nowrap}
+.cal-filter-panel summary::-webkit-details-marker{display:none}
+.cal-filter-panel[open] summary{background:#1c574f;border-color:#66b6a3}
+.cal-filters{position:absolute;right:0;top:calc(100% + 8px);width:min(390px,calc(100vw - 55px));display:grid;grid-template-columns:1fr 1fr;gap:11px;background:#172d42;border:1px solid #467389;box-shadow:0 18px 45px #000b;border-radius:10px;padding:16px}
+.cal-filters label{display:flex;flex-direction:column;gap:5px;color:#a1bfcb;font-size:10px;font-weight:700}
+.cal-filters select,.cal-filters input:not([type=checkbox]){width:100%;min-width:0;border:1px solid #416780;border-radius:6px;background:#0c1c2e;color:#ecf7fb;padding:8px;font-size:11px}
+.cal-filters .cal-check{flex-direction:row;align-items:center;gap:7px}
+.cal-filters .cal-check input{accent-color:#4ee2be}
+.cal-reset{background:#244b45;border:1px solid #4f9f88;border-radius:6px;color:#c2ffe9;padding:8px;font-size:10px;font-weight:740}
+.cal-reset:hover{background:#346c5e}
+.cal-meta-strip{display:flex;justify-content:space-between;gap:12px;align-items:center;background:#172b40;padding:8px 14px;color:#95b9c9;font-size:10px;line-height:1.5;border-bottom:1px solid #31475d}
+.cal-table-scroll{width:100%;overflow-x:auto;max-height:710px;overflow-y:auto}
+.cal-table{border-collapse:collapse;table-layout:auto;min-width:890px;width:100%;font-size:11px;white-space:normal}
+.cal-table thead{position:sticky;top:0;z-index:3}
+.cal-table th{background:#254261;color:#afcde0;letter-spacing:0;font:750 10px ui-monospace,Consolas,monospace;padding:11px 9px;border-right:1px solid #355775;white-space:nowrap}
+.cal-table td{background:#142537;border-bottom:1px solid #2e4052;padding:7px 9px;vertical-align:middle;color:#d7e5ed;font-size:11px;line-height:1.5}
+.cal-table .cal-event-row:nth-child(odd) td{background:#172a3c}
+.cal-table .cal-event-row:hover td{background:#20394e}
+.cal-table .cal-event-row.highlight td{background:#27584e}
+.cal-col-date{width:94px}.cal-col-time{width:61px}.cal-col-currency{width:57px}
+.cal-col-impact{width:92px}.cal-col-event{min-width:200px}
+.cal-col-detail{width:52px}.cal-col-number{width:88px}.cal-col-graph{width:55px}
+.cal-day-group td{background:#163d43!important;color:#b4f3de!important;font-weight:800!important;padding:9px 13px!important;text-transform:capitalize;border-top:1px solid #397c79;letter-spacing:.15px}
+.cal-date-cell{color:#a9c7d4!important;font-size:10px!important;white-space:nowrap}
+.cal-time-cell{font:800 11px ui-monospace,Consolas,monospace!important;color:#d0e8f3!important;white-space:nowrap}
+.cal-currency-cell{font:850 11px ui-monospace,Consolas,monospace!important;color:#c0dbf1!important}
+.cal-impact-cell{white-space:nowrap}
+.cal-impact-badge{display:inline-flex;align-items:center;gap:7px;color:#94b0bf;font-size:10px}
+.cal-impact{display:inline-block;width:12px;height:12px;border-radius:2px;flex-shrink:0;border:1px solid #9d9565;background:#cbb74b}
+.cal-impact.high{background:#ea5b5e;border-color:#ff757a}
+.cal-impact.medium{background:#eda752;border-color:#ffbd6e}
+.cal-impact.low{background:#ddc957;border-color:#ead677}
+.cal-name-cell{text-align:left!important}
+.cal-event-name{display:block;background:transparent;border:0;text-align:left;padding:1px 0;color:#e7f1f8;font-weight:740;cursor:pointer;line-height:1.4;font-size:11px}
+.cal-event-name:hover{text-decoration:underline;color:#7cf2d2}
+.cal-inline-context{display:block;font-size:10px;color:#94b1c0;line-height:1.6;margin-top:5px}
+.cal-detail-cell{text-align:center}
+.cal-detail-trigger{background:#243e54;color:#b4e7dc;border:1px solid #466f7d;border-radius:5px;width:27px;height:23px;padding:0}
+.cal-detail-trigger:hover{background:#316f67}
+.cal-data-cell{text-align:center;font:770 11px ui-monospace,Consolas,monospace!important;color:#d6e6ee!important;white-space:nowrap}
+.cal-data-cell.positive{color:#6feaab!important}.cal-data-cell.negative{color:#ff8796!important}
+.cal-graph-cell{text-align:center;color:#738c9d!important}
+.cal-muted{color:#7796a5;font-size:11px}
+.cal-empty{padding:48px 20px!important;color:#98b7c6!important;text-align:center;font-size:12px!important}
+.cal-expanded-row td{background:#1b3045!important;padding:0!important;border-bottom:2px solid #4c9484!important}
+.cal-detail-wrap{padding:17px 21px;display:flex;justify-content:space-between;align-items:flex-start;gap:18px;border-left:3px solid #52d6b6}
+.cal-detail-body{max-width:760px;min-width:0}
+.cal-detail-body>strong{font-size:14px;color:#e2f9ef}
+.cal-detail-body p{font-size:11px;color:#a8c6d0;line-height:1.7;margin:8px 0}
+.cal-original-name{font-size:10px;color:#7da4b7;margin-top:4px}
+.cal-detail-kv{display:flex;flex-wrap:wrap;gap:7px}
+.cal-detail-kv span{background:#233f54;color:#b7d6e4;border:1px solid #385e74;border-radius:4px;padding:3px 7px;font-size:10px}
+.cal-detail-warning{color:#e9c69c!important}
+.cal-detail-side{display:flex;flex-direction:column;gap:8px;align-items:flex-start;min-width:170px}
+.cal-detail-side a{color:#9ff6da;font-size:11px;font-weight:750}
+.cal-detail-side small{color:#829eac;line-height:1.5}
+.cal-bottom{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 14px;background:#172b40;border-top:1px solid #344d61;color:#9ebccc;font-size:10px;border-radius:0 0 9px 9px}
+.cal-data-note{margin:13px 15px 17px;font-size:10px;line-height:1.8;color:#86a5b2}
+.cal-data-note a{color:#82ead0;text-decoration:underline;text-underline-offset:3px}
+@media(max-width:1190px){
+ .cal-shell{grid-template-columns:190px minmax(0,1fr)}
+ .cal-topbar{align-items:flex-start}
+ .cal-top-actions{flex-wrap:wrap}
+ .cal-side-section{padding:13px 10px}
+ .cal-week-control strong{min-width:0;font-size:12px}
+}
+@media(max-width:880px){
+ .cal-shell{grid-template-columns:1fr}
+ .cal-sidebar{display:grid;grid-template-columns:200px 1fr;gap:0}
+ .cal-side-section{border-right:1px solid #2d455b;border-bottom:0}
+ .cal-side-section.cal-quick{grid-template-columns:1fr 1fr;align-content:start}
+ .cal-quick .cal-side-label{grid-column:1/-1}
+ .cal-side-legend,.cal-side-external{display:none}
+ .cal-table-scroll{max-height:580px}
+}
+@media(max-width:600px){
+ .cal-sidebar{grid-template-columns:1fr 1fr}
+ .cal-quick button{padding:6px 5px;font-size:10px}
+ .cal-side-head strong{font-size:11px}
+ .cal-topbar{padding:9px}
+ .cal-week-control{flex-wrap:wrap}
+ .cal-week-control strong{font-size:11px;flex:1}
+ .cal-top-actions{width:100%}
+ .cal-search-label{flex:1}
+ .cal-meta-strip{font-size:9px}
+ .cal-filters{right:0}
+ .cal-detail-wrap{flex-direction:column}
+ .cal-detail-side{min-width:0}
+}
