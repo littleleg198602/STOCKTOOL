@@ -104,7 +104,7 @@ $cache=mi_cached('overview_official_plus_global_v3',900,static function():?array
     return [
         'news'=>$stories,'hot'=>$hot,'calendar'=>$events,'sources'=>$sources,
         'calendar_attribution'=>$smt['attribution']??null,
-        'global_calendar_active'=>is_array($smt),
+        'global_calendar_active'=>count($providerEvents)>0,
         'translation_enabled'=>$deeplAvailable,
         'hot_method'=>'Vlastní tematický výběr StockTool podle klíčových makro témat a stáří článku; není to žebříček popularity Forex Factory.',
         'calendar_note'=>'Blízké události devíti hlavních měn: ShowMyTrades (s uvedením zdroje); u vybraných událostí poskytuje Actual, Forecast, Previous. BEA/BLS slouží jako doplněk historických a budoucích amerických termínů, bez konsensu.'
