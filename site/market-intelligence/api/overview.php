@@ -49,7 +49,7 @@ function mi_translate_deepl(array $stories): array {
     foreach($json['translations'] as $i=>$translation){
         $cs=trim((string)($translation['text']??''));
         if($i<$limit&&$cs!==''){
-            $stories[$i]['title_cs']=$cs;$stories[$i]['translated']=true;
+            $stories[$i]['title_cs']=$cs;$stories[$i]['translated']=true;$stories[$i]['localization']='machine_translation';$stories[$i]['translation_provider']='DeepL';
         }
     }
     return [$stories,true];
