@@ -565,3 +565,32 @@ Tato změna nahrazuje původní jednoduchou tabulku v aplikaci 09 kompaktním **
 6. Pokud zůstanou tabulky prázdné, ověřit PHP odchozí HTTPS na BEA/BLS a stav zdrojů; nesnažit se prázdné údaje nahradit simulovanými termíny.
 
 Testy: \`node tests/calendar_v2_test.cjs\` a \`node tests/calendar_v2_ui_test.cjs\`; Python/MT5 synchronizátor ani původní akciové analýzy se nemění. Ověření nových endpointů na reálném FORPSI hostingu je stále nutné po nasazení.
+
+
+---
+
+## Market Intelligence v0.3 – oprava češtiny a mezinárodního kalendáře
+
+**Web po ručním Deploy v3:** https://www.stocktool.eu/test/market-intelligence/
+
+- **News + Hot Stories:** české zobrazení před anglickým originálem. Přesný překlad vzniká z volitelně nakonfigurovaného DeepL nebo nově z veřejné služby MyMemory, omezované na 3200 znaků za UTC den a nejvýše 12 nových veřejných titulků na jednu aktualizaci. Trvalá cache překladů leží mimo www ve stocktool-private/intelligence-cache. Při nedostupném překladači je jako české shrnutí uvedeno pouze bezpečně určitelné makrotéma, nikoli předstíraný přesný překlad. Originální anglický titulek zůstává pro ověření.
+- **Calendar:** veřejné API ShowMyTrades přináší do vlastní české tabulky události pro USD, EUR, GBP, JPY, AUD, NZD, CAD, CHF a CNY, včetně skutečnosti/odhadu/předchozí hodnoty tam, kde jsou dostupné. Vždy je zobrazen původ dat a viditelný odkaz na zdroj. Oficiální BEA/BLS zůstávají jako záloha a pro širší časové období, ale bez konsensu.
+- **Světový kalendář:** samostatný volitelný režim využívá přímo autorizovaný bezplatný widget TraderWaves s nezměněným viditelným autorským odkazem. Externí skript se načítá až po kliknutí návštěvníka, nikoli automaticky. Překlady a dostupnost tohoto iframe řeší jeho provider.
+- **UI v češtině:** Zprávy, Hlavní témata, Kalendář, Seance, Skutečnost, Odhad, Předchozí, Důležitost, Další událost. Standardizované české popisy makro indikátorů zachovávají údaje meziročně/mezikvartálně/meziměsíčně.
+- **Výkon:** paralelní načítání sedmi zdrojů PHP cURL multi s osmivteřinovým limitem; 15minutová serverová cache. MyMemory překlady se ukládají do neveřejné cache a mají konzervativní denní kvótu.
+- **Bez zásahu do MT5:** Equity a Market Data Manager, Strategy Lab backtest, BUY a SHORT skenery zůstávají beze změny.
+- **Právní hranice:** žádné kopírování Forex Factory; pouze veřejné nebo samostatně licencované/volně vložitelné zdroje s příslušným kreditem.
+
+### Technické soubory a testování
+
+Nové: site/market-intelligence/api/localization.php, translation.php a calendar_provider.php.
+Aktualizované: source_lib.php, overview.php, index.html, app.js, calendar-v2.js, styles.css a tests/market_intelligence_test.php.
+
+Po nasazení aktualizovaného site/ přes Deploy-StockTool.bat v3 zkontroluj stránku a API na FORPSI a obnov Ctrl+F5. Výpis musí být český, čísla pocházet z aktuálního providera, kredit musí být vidět. Pokud odchozí HTTPS z FORPSI není dostupné, zobrazuje se pouze oficiální kalendář BEA/BLS a nedoplněné hodnoty se nefalšují. Živý provoz FORPSI je třeba ověřit po deployi.
+
+Automatický GitHub FTP deploy i Market Intelligence CI zůstávají manual-only kvůli dřívějším chybovým e-mailům. Testy lze spustit ručně: php tests/market_intelligence_test.php; node tests/calendar_v2_test.cjs; node tests/calendar_v2_ui_test.cjs.
+
+Dokumentace zdrojů:
+- https://showmytrades.com/docs/api/economic-calendar
+- https://traderwaves.com/business/widgets/economic-calendar
+- https://mymemory.translated.net/doc/usagelimits.php
