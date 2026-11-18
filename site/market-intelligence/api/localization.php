@@ -44,6 +44,11 @@ function mi_cz_event_title(string $title): string {
     $t=trim($title);
     if($t==='')return 'Ekonomická událost';
     $patterns=[
+      '~\b(core cpi|core consumer price index)\b~i'=>'Jádrová inflace (CPI)',
+      '~\b(trimmed mean cpi|trimmed cpi)\b~i'=>'Očištěná inflace (CPI)',
+      '~\b(median cpi)\b~i'=>'Mediánová inflace (CPI)',
+      '~\b(core ppi|core producer price index)\b~i'=>'Jádrový index cen výrobců (PPI)',
+      '~\b(gdp price index|gdp deflator)\b~i'=>'Cenový deflátor HDP',
       '~\b(nonfarm payrolls?|employment situation)\b~i'=>'Nová pracovní místa mimo zemědělství (NFP)',
       '~\b(initial|continuing) jobless claims\b~i'=>'Žádosti o podporu v nezaměstnanosti',
       '~\b(unemployment rate)\b~i'=>'Míra nezaměstnanosti',
@@ -77,8 +82,18 @@ function mi_cz_event_title(string $title): string {
       '~\b(import prices|export prices)\b~i'=>'Ceny dovozu a vývozu',
       '~\b(bank holiday|public holiday|market holiday)\b~i'=>'Státní svátek / zavřený trh',
     ];
-    // Keep distinctions: Core CPI before CPI, Core PCE before PCE.
-    foreach($patterns as $re=>$label)if(preg_match($re,$t))return $label;
+    // Distinguish core/headline and period comparisons; never conflate
+    // month-over-month with year-over-year in the displayed Czech label.
+    foreach($patterns as $re=>$label){
+        if(!preg_match($re,$t))continue;
+        if(preg_match('~\\b(m/m|mom|month.over.month)\\b~i',$t))$label.=' · meziměsíčně';
+        elseif(preg_match('~\\b(y/y|yoy|year.over.year)\\b~i',$t))$label.=' · meziročně';
+        elseif(preg_match('~\\b(q/q|qoq|quarter.over.quarter)\\b~i',$t))$label.=' · mezikvartálně';
+        if(preg_match('~\\b(prelim|preliminary)\\b~i',$t))$label='Předběžně: '.$label;
+        elseif(preg_match('~\\b(final)\\b~i',$t))$label='Konečně: '.$label;
+        elseif(preg_match('~\\b(revised)\\b~i',$t))$label='Revidováno: '.$label;
+        return $label;
+    }
     if(preg_match('~\b(speech|speaks|remarks|testimony)\b~i',$t)){
         return 'Projev představitele centrální banky';
     }
