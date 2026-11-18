@@ -12,7 +12,7 @@
 <script defer src="./calendar-core.js?v=cal2"></script>
 <script defer src="./calendar-v2.js?v=cal2"></script>
 </head>
-<body>
+<body class="calendar-focused">
 <a class="skip-link" href="#main">Přejít na obsah</a>
 <header class="topbar">
   <a href="../" class="brand"><span class="brand-mark"><svg viewBox="0 0 32 32" fill="none"><path d="M5 21L12 15L17 18L26 8M21 8h5v5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>STOCK<b>TOOL</b><small>.EU</small></span></a>
@@ -36,13 +36,13 @@
   </section>
 
   <div class="tabnav" role="tablist" aria-label="Market Intelligence">
-    <button type="button" role="tab" class="tab active" id="tab-news" data-tab="news" aria-selected="true" aria-controls="panel-news"><span class="tab-icon">▤</span> News <span id="news-counter"></span></button>
+    <button type="button" role="tab" class="tab" id="tab-news" data-tab="news" aria-selected="false" aria-controls="panel-news"><span class="tab-icon">▤</span> News <span id="news-counter"></span></button>
     <button type="button" role="tab" class="tab" id="tab-hot" data-tab="hot" aria-selected="false" aria-controls="panel-hot"><span class="tab-icon">↗</span> Hot Stories</button>
-    <button type="button" role="tab" class="tab" id="tab-calendar" data-tab="calendar" aria-selected="false" aria-controls="panel-calendar"><span class="tab-icon">▦</span> Calendar</button>
+    <button type="button" role="tab" class="tab active" id="tab-calendar" data-tab="calendar" aria-selected="true" aria-controls="panel-calendar"><span class="tab-icon">▦</span> Calendar</button>
     <button type="button" role="tab" class="tab" id="tab-sessions" data-tab="sessions" aria-selected="false" aria-controls="panel-sessions"><span class="tab-icon">◷</span> Sessions</button>
   </div>
 
-  <section role="tabpanel" id="panel-news" class="tab-panel active" aria-labelledby="tab-news">
+  <section role="tabpanel" id="panel-news" class="tab-panel" aria-labelledby="tab-news" hidden>
     <div class="section-heading"><div><span class="section-code">01 / OFFICIAL HEADLINES</span><h2>Market <span>News</span></h2><p>Časově seřazené zprávy přímo od centrálních bank a ekonomických institucí. U každé zprávy najdeš české vysvětlení tématu.</p></div><a class="external" href="https://www.forexfactory.com/news" target="_blank" rel="noopener noreferrer">Forex Factory News ↗</a></div>
     <div class="toolbar">
       <label class="field">Téma <select id="news-topic"><option value="all">Všechna témata</option><option value="rates">Úrokové sazby / banky</option><option value="inflation">Inflace</option><option value="jobs">Trh práce</option><option value="growth">Ekonomika a růst</option><option value="energy">Energie a kovy</option></select></label>
@@ -60,7 +60,7 @@
     <div class="hot-grid" id="hot-list"><div class="empty">Načítám výběr…</div></div>
   </section>
 
-  <section role="tabpanel" id="panel-calendar" class="tab-panel calendar-v2-panel" aria-labelledby="tab-calendar" hidden>
+  <section role="tabpanel" id="panel-calendar" class="tab-panel calendar-v2-panel active" aria-labelledby="tab-calendar">
     <div class="section-heading calendar-heading">
       <div><span class="section-code">03 / ECONOMIC CALENDAR · TRADER VIEW V2</span><h2>Economic <span>Calendar</span></h2>
       <p>Kompaktní týdenní kalendář se skutečnými časy zveřejnění. České názvy událostí, přímé zdroje a podrobnosti na jedno kliknutí.</p></div>
