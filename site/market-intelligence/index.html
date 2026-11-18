@@ -7,14 +7,15 @@
 <meta name="description" content="StockTool Market Intelligence: News, Hot Stories, Economic Calendar a Forex Sessions s českým kontextem a časy Praha.">
 <title>News & Economic Calendar | StockTool.eu</title>
 <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
-<link rel="stylesheet" href="./styles.css?v=1">
-<script defer src="./app.js?v=1"></script>
+<link rel="stylesheet" href="./styles.css?v=cal2">
+<script defer src="./app.js?v=cal2"></script>
+<script defer src="./calendar-v2.js?v=cal2"></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Přejít na obsah</a>
 <header class="topbar">
   <a href="../" class="brand"><span class="brand-mark"><svg viewBox="0 0 32 32" fill="none"><path d="M5 21L12 15L17 18L26 8M21 8h5v5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>STOCK<b>TOOL</b><small>.EU</small></span></a>
-  <div class="top-label">MARKET INTELLIGENCE <span>V0.1</span></div>
+  <div class="top-label">MARKET INTELLIGENCE <span>V0.2</span></div>
   <nav class="top-links"><a href="../strategy-lab/">Strategy Lab</a><a href="../market-data/">Market Data</a><a href="../">← Platforma</a></nav>
 </header>
 <main id="main" class="wrap">
@@ -58,17 +59,91 @@
     <div class="hot-grid" id="hot-list"><div class="empty">Načítám výběr…</div></div>
   </section>
 
-  <section role="tabpanel" id="panel-calendar" class="tab-panel" aria-labelledby="tab-calendar" hidden>
-    <div class="section-heading"><div><span class="section-code">03 / ECONOMIC RELEASES</span><h2>Economic <span>Calendar</span></h2><p>Časy ekonomických zveřejnění z oficiálních kalendářů USA. Důležitost určuje naše tematická heuristika, nikoli hodnocení Forex Factory.</p></div><a class="external" href="https://www.forexfactory.com/calendar" target="_blank" rel="noopener noreferrer">Celosvětový kalendář FF ↗</a></div>
-    <div class="toolbar">
-      <label class="field">Období <select id="calendar-range"><option value="7">Následujících 7 dní</option><option value="30">Následujících 30 dní</option><option value="60">Následujících 60 dní</option><option value="past">Posledních 7 dní</option></select></label>
-      <label class="field">Důležitost <select id="calendar-impact"><option value="all">Všechny</option><option value="high">Vysoká</option><option value="medium">Střední a vysoká</option></select></label>
-      <label class="field">Organizace <select id="calendar-source"><option value="all">BEA + BLS</option><option value="BEA">BEA</option><option value="BLS">BLS</option></select></label>
-      <label class="check-label"><input type="checkbox" id="calendar-only-future" checked> Jen budoucí při běžném zobrazení</label>
+  <section role="tabpanel" id="panel-calendar" class="tab-panel calendar-v2-panel" aria-labelledby="tab-calendar" hidden>
+    <div class="section-heading calendar-heading">
+      <div><span class="section-code">03 / ECONOMIC CALENDAR · TRADER VIEW V2</span><h2>Economic <span>Calendar</span></h2>
+      <p>Kompaktní týdenní kalendář se skutečnými časy zveřejnění. České názvy událostí, přímé zdroje a podrobnosti na jedno kliknutí.</p></div>
+      <a class="external" href="https://www.forexfactory.com/calendar" target="_blank" rel="noopener noreferrer">Kompletní Forex Factory ↗</a>
     </div>
-    <div class="calendar-warning">Zdroje BEA/BLS neobsahují v tomto exportu hodnoty <strong>Actual / Forecast / Previous</strong>. Proto je nevymýšlíme. Pro kompletní ekonomický kalendář včetně konsenzu otevři <a href="https://www.forexfactory.com/calendar" target="_blank" rel="noopener noreferrer">Forex Factory ↗</a>.</div>
-    <div class="table-wrap"><table class="calendar-table"><thead><tr><th>Praha</th><th>Měna</th><th>Důležitost*</th><th>Událost</th><th>Zdroj</th></tr></thead><tbody id="calendar-body"><tr><td colspan="5">Načítám ekonomický kalendář…</td></tr></tbody></table></div>
-    <p class="underlist" id="calendar-foot">Časová zóna: Europe/Prague (automaticky CET / CEST).</p>
+    <div class="cal-shell">
+      <aside class="cal-sidebar" aria-label="Navigace kalendáře">
+        <div class="cal-side-section">
+          <div class="cal-side-head"><strong id="cal-month-title">Listopad 2026</strong><div class="cal-month-arrows">
+            <button id="cal-month-prev" class="cal-icon-btn" type="button" aria-label="Předchozí měsíc">‹</button>
+            <button id="cal-month-next" class="cal-icon-btn" type="button" aria-label="Následující měsíc">›</button>
+          </div></div>
+          <div class="cal-weekdays" aria-hidden="true"><span>Po</span><span>Út</span><span>St</span><span>Čt</span><span>Pá</span><span>So</span><span>Ne</span></div>
+          <div id="cal-month-grid" class="cal-month-grid" role="group" aria-label="Vyber datum"></div>
+        </div>
+        <div class="cal-side-section cal-quick">
+          <div class="cal-side-label">RYCHLÁ NAVIGACE</div>
+          <button type="button" data-cal-preset="today">Dnes</button>
+          <button type="button" data-cal-preset="tomorrow">Zítra</button>
+          <button type="button" data-cal-preset="week" class="active">Tento týden</button>
+          <button type="button" data-cal-preset="next-week">Příští týden</button>
+          <button type="button" data-cal-preset="last-week">Minulý týden</button>
+          <button type="button" data-cal-preset="month">Tento měsíc</button>
+          <button type="button" data-cal-preset="next-month">Příští měsíc</button>
+          <button type="button" data-cal-preset="last-month">Minulý měsíc</button>
+        </div>
+        <div class="cal-side-section cal-side-legend">
+          <div class="cal-side-label">DŮLEŽITOST</div>
+          <span><i class="cal-impact high"></i> Vysoká</span>
+          <span><i class="cal-impact medium"></i> Střední</span>
+          <span><i class="cal-impact low"></i> Nízká</span>
+          <small>Vlastní tematické hodnocení StockTool, nikoliv Forex Factory.</small>
+        </div>
+        <div class="cal-side-external"><a href="https://www.forexfactory.com/calendar" target="_blank" rel="noopener noreferrer">Forex Factory – všechny země a hodnoty ↗</a></div>
+      </aside>
+
+      <div class="cal-main">
+        <div class="cal-topbar">
+          <div class="cal-week-control">
+            <button id="cal-prev-week" class="cal-arrow" type="button" aria-label="Předchozí období">‹</button>
+            <strong id="cal-period-title">Tento týden</strong>
+            <button id="cal-next-week" class="cal-arrow" type="button" aria-label="Následující období">›</button>
+            <button id="cal-today" type="button" class="cal-today">Dnes</button>
+          </div>
+          <div class="cal-top-actions">
+            <button id="cal-up-next" type="button" class="cal-top-action">◷ Up Next</button>
+            <label class="cal-search-label"><span class="sr-only">Hledat události</span><input id="cal-search" type="search" autocomplete="off" placeholder="⌕ Hledat událost…"></label>
+            <details id="cal-filter-panel" class="cal-filter-panel"><summary>☷ Filtry</summary>
+              <div class="cal-filters">
+                <label>Měna <select id="cal-currency"><option value="all">Všechny dostupné</option></select></label>
+                <label>Důležitost <select id="cal-impact"><option value="all">Všechny</option><option value="high">Pouze vysoká</option><option value="medium">Střední + vysoká</option><option value="low">Pouze nízká</option></select></label>
+                <label>Kategorie <select id="cal-category"><option value="all">Všechna témata</option><option value="inflation">Inflace</option><option value="jobs">Zaměstnanost</option><option value="rates">Sazby a banky</option><option value="growth">HDP a růst</option><option value="industry">Průmysl</option><option value="trade">Zahraniční obchod</option><option value="other">Ostatní</option></select></label>
+                <label>Zdroj <select id="cal-source"><option value="all">Všechny dostupné</option></select></label>
+                <label>Časová zóna <select id="cal-tz"><option value="prague">Praha · CET/CEST</option><option value="utc">UTC</option><option value="broker">MT5 · vlastní UTC posun</option></select></label>
+                <label id="cal-broker-offset-label" hidden>Posun času MT5 vůči UTC
+                  <select id="cal-broker-offset"><option value="-5">UTC −5</option><option value="-4">UTC −4</option><option value="-3">UTC −3</option><option value="-2">UTC −2</option><option value="-1">UTC −1</option><option value="0">UTC ±0</option><option value="1">UTC +1</option><option value="2" selected>UTC +2</option><option value="3">UTC +3</option><option value="4">UTC +4</option><option value="5">UTC +5</option><option value="6">UTC +6</option><option value="7">UTC +7</option><option value="8">UTC +8</option><option value="9">UTC +9</option><option value="10">UTC +10</option><option value="11">UTC +11</option><option value="12">UTC +12</option></select>
+                </label>
+                <label class="cal-check"><input id="cal-only-upcoming" type="checkbox"> Jen nadcházející</label>
+                <label>Režim <select id="cal-view"><option value="compact">Compact – trader</option><option value="insight">Insight – vysvětlení</option></select></label>
+                <button id="cal-reset-filters" type="button" class="cal-reset">Vymazat filtry</button>
+              </div>
+            </details>
+          </div>
+        </div>
+        <div class="cal-meta-strip">
+          <span id="cal-view-status">Načítám ověřené ekonomické události…</span>
+          <span id="cal-zone-status">Čas Praha · CET/CEST</span>
+        </div>
+        <div class="cal-table-scroll" id="cal-table-scroll">
+          <table class="cal-table" aria-label="Kompaktní ekonomický kalendář">
+            <thead><tr>
+              <th class="cal-col-date">Den</th><th class="cal-col-time">Čas</th>
+              <th class="cal-col-currency">Měna</th><th class="cal-col-impact">Impact</th>
+              <th class="cal-col-event">Událost</th><th class="cal-col-detail">Detail</th>
+              <th class="cal-col-number">Actual</th><th class="cal-col-number">Forecast</th>
+              <th class="cal-col-number">Previous</th><th class="cal-col-graph">Graf</th>
+            </tr></thead>
+            <tbody id="cal-v2-body"><tr><td colspan="10" class="cal-table-empty">Načítám oficiální ekonomický kalendář…</td></tr></tbody>
+          </table>
+        </div>
+        <div class="cal-bottom"><span id="cal-result-count">—</span><span>BEA / BLS · dostupná americká makrodata</span></div>
+        <p class="cal-data-note">**Actual / Forecast / Previous** zobrazujeme jen v případě ověřených dat. Zdroje BEA/BLS poskytují termíny zveřejnění, ale ne konsensus ani výsledky v tomto feedu. „—“ neznamená nulu. Graf a směr překvapení nevymýšlíme. Pro celý světový kalendář včetně dalších měn využij <a href="https://www.forexfactory.com/calendar" target="_blank" rel="noopener noreferrer">Forex Factory ↗</a>.</p>
+      </div>
+    </div>
   </section>
 
   <section role="tabpanel" id="panel-sessions" class="tab-panel" aria-labelledby="tab-sessions" hidden>
