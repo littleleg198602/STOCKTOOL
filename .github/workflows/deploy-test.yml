@@ -1,12 +1,10 @@
 name: Deploy test to FORPSI
 
+# Manual-only: user deploys site/ via Deploy-StockTool.bat v3.
+# DO NOT enable automatic push -> FTP: previous jobs failed repeatedly,
+# flooding the repository owner with GitHub Actions failure emails.
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - 'site/**'
-      - '.github/workflows/deploy-test.yml'
 
 permissions:
   contents: read
