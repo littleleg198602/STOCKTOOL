@@ -143,7 +143,8 @@
     document.dispatchEvent(new CustomEvent("stocktool:calendar-data",{
       detail:{events:data.calendar,updated_at:data.updated_at,
         stale:data.stale,data_available:!!payload.data_available,
-        sources:data.sources}
+        sources:data.sources,global_calendar_active:!!payload.global_calendar_active,
+        calendar_attribution:payload.calendar_attribution||null}
     }));
   }
   function tzParts(date,tz){
