@@ -72,35 +72,43 @@
     };
     return patterns[topic]?.test(t)??true;
   }
+  function storyHeading(item){
+    // A Czech topical synopsis is not falsely presented as a translation.
+    const headline=typeof item.title_cs==="string"&&item.title_cs.trim()
+      ?item.title_cs.trim():(item.source+": "+item.topic_cs);
+    return headline;
+  }
   function createStory(item,hot=false){
     const date=formatStamp(item.published_at);
     const impact=item.weight>=3?"high":item.weight===2?"medium":"low";
-    const card=el(hot?"article":"article",hot?"hot-card":"story");
+    const card=el("article",hot?"hot-card":"story");
+    const source=String(item.source||"Zdroj");
+    const isTranslation=!!item.translated;
+    const heading=storyHeading(item);
+    const label=isTranslation?"Český překlad":"České shrnutí tématu";
     if(hot){
       const head=el("div","hot-head");
       head.append(badge(impact),el("span","story-meta",relative(item.published_at)));
       card.append(head);
-      const title=el("h3");title.append(foreignLink(item.url,item.translated&&item.title_cs?item.title_cs:item.title_original));
-      card.append(title);
-      card.append(el("div","story-meta",item.source+" · "+date));
-      card.append(el("div","topic-label",item.topic_cs));
-      card.append(el("p","",item.context_cs));
-      card.append(foreignLink(item.url,"Původní zpráva ↗"));
-      return card;
+      card.append(el("div","story-meta",source+" · "+date+" · "+label));
+      const title=el("h3");title.append(foreignLink(item.url,heading));card.append(title);
+      card.append(el("p","story-original","Původní zpráva: "+item.title_original));
+      card.append(el("p","story-cz-explainer",item.context_cs));
+      const actions=el("div","hot-actions");
+      actions.append(foreignLink(item.url,"Otevřít zdroj ↗"),translateLink(item.url));
+      card.append(actions);return card;
     }
-    const icon=el("div","story-icon",item.source);
+    const icon=el("div","story-icon",source);
     const body=el("div","story-main");
     const meta=el("div","story-meta");
-    meta.append(el("span","source-tag",item.source),el("span","",date),badge(impact));
+    meta.append(el("span","source-tag",source),el("span","",date),badge(impact));
     body.append(meta);
-    body.append(el("div","topic-label",item.topic_cs));
-    const title=el("h3");
-    title.append(foreignLink(item.url,item.translated&&item.title_cs?item.title_cs:item.title_original));
-    if(!item.translated)title.append(el("span","english-label","originální titulek EN"));
-    body.append(title);
-    body.append(el("p","",item.context_cs));
+    body.append(el("div","topic-label",item.topic_cs+" · "+label));
+    const title=el("h3");title.append(foreignLink(item.url,heading));body.append(title);
+    body.append(el("p","story-original","Originál (EN): "+item.title_original));
+    body.append(el("p","story-cz-explainer",item.context_cs));
     const actions=el("div","story-actions");
-    actions.append(foreignLink(item.url,"Originál ↗"),translateLink(item.url));
+    actions.append(foreignLink(item.url,"Zdroj ↗"),translateLink(item.url));
     card.append(icon,body,actions);
     return card;
   }
@@ -112,13 +120,13 @@
     const search=$("news-search").value.trim().toLocaleLowerCase("cs-CZ");
     const items=data.news.filter(item=>(selected==="all"||item.source===selected)&&
       newsMatchesTopic(item,topic)&&
-      (!search||(item.title_original+" "+item.topic_cs+" "+item.context_cs).toLocaleLowerCase("cs-CZ").includes(search)));
+      (!search||(item.title_original+" "+storyHeading(item)+" "+item.topic_cs+" "+item.context_cs).toLocaleLowerCase("cs-CZ").includes(search)));
     if(!items.length){
       list.append(el("div","empty",data.news.length?"Tomuto filtru neodpovídají žádné zprávy.":"Zprávy nejsou momentálně dostupné. Zkus obnovit zdroj nebo otevři Forex Factory."));
     } else for(const item of items)list.append(createStory(item));
     $("news-counter").textContent=String(items.length);
     $("news-foot").textContent="Zobrazeno "+items.length+" z "+data.news.length+
-      " zpráv · "+(data.translation_enabled?"Překlad titulků: aktivní DeepL":"Originální anglické titulky; český kontext a odkaz na překlad")+
+      " zpráv · "+(data.translation_enabled?"Přeložené titulky pomocí DeepL; původní text pod nimi":"České shrnutí tématu nahoře; přesné původní znění menším písmem")+
       " · Čas Praha";
   }
   function drawHot(){
@@ -229,7 +237,7 @@
       "Poslední úspěšná aktualizace "+time+". Cache 15 minut. "+
       (data.stale?"Zobrazená data mohou být zastaralá. ":"")+
       (missing.length?"Nedostupné zdroje: "+missing.join(", ")+". ":"")+
-      (data.translation_enabled?"České překlady titulků: aktivní.":"Bez překladového API: originální titulky + české vysvětlení a odkazy na překlad.");
+      (data.translation_enabled?"Úplné české překlady přes DeepL: aktivní.":"Základní čeština: ověřené tematické shrnutí; originální nadpisy jsou zachovány pro kontrolu.");
   }
   function switchTab(name){
     const tabs=["news","hot","calendar","sessions"];
