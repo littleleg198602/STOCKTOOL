@@ -10,6 +10,7 @@ header('X-Content-Type-Options: nosniff');
 define('STOCKTOOL_INTELLIGENCE',true);
 require __DIR__.'/source_lib.php';
 require __DIR__.'/calendar_provider.php';
+require __DIR__.'/translation.php';
 if(($_SERVER['REQUEST_METHOD']??'GET')!=='GET'){
     header('Allow: GET');http_response_code(405);
     echo '{"ok":false,"error":"GET required"}';exit;
@@ -77,6 +78,9 @@ $cache=mi_cached('overview_official_plus_global_v3',900,static function():?array
     }
     $stories=array_slice($unique,0,50);
     [$stories,$deeplAvailable]=mi_translate_deepl($stories);
+    $machineCount=0;
+    if(!$deeplAvailable)[$stories,$machineCount]=mi_translate_public_headlines($stories);
+    $translationSource=$deeplAvailable?'DeepL':($machineCount>0?'MyMemory':'Czech topic summaries');
     $bea=mi_get('https://apps.bea.gov/API/signup/release_dates.json');
     $beaEvents=is_string($bea)?mi_parse_bea($bea,$now):[];
     $sources[]=['name'=>'BEA calendar','ok'=>count($beaEvents)>0,'url'=>'https://www.bea.gov/news/schedule/icalendar'];
@@ -105,7 +109,8 @@ $cache=mi_cached('overview_official_plus_global_v3',900,static function():?array
         'news'=>$stories,'hot'=>$hot,'calendar'=>$events,'sources'=>$sources,
         'calendar_attribution'=>$smt['attribution']??null,
         'global_calendar_active'=>count($providerEvents)>0,
-        'translation_enabled'=>$deeplAvailable,
+        'translation_enabled'=>($deeplAvailable||$machineCount>0),
+        'translation_source'=>$translationSource,
         'hot_method'=>'Vlastní tematický výběr StockTool podle klíčových makro témat a stáří článku; není to žebříček popularity Forex Factory.',
         'calendar_note'=>'Blízké události devíti hlavních měn: ShowMyTrades (s uvedením zdroje); u vybraných událostí poskytuje Actual, Forecast, Previous. BEA/BLS slouží jako doplněk historických a budoucích amerických termínů, bez konsensu.'
     ];
@@ -120,6 +125,7 @@ mi_reply([
     'calendar_attribution'=>$payload['calendar_attribution']??null,
     'global_calendar_active'=>$payload['global_calendar_active']??false,
     'translation_enabled'=>$payload['translation_enabled']??false,
+    'translation_source'=>$payload['translation_source']??'Czech topic summaries',
     'hot_method'=>$payload['hot_method']??'',
     'calendar_note'=>$payload['calendar_note']??'Oficiální zdroje dočasně nedostupné.',
     'external'=>[
