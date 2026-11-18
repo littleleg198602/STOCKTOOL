@@ -9,6 +9,7 @@ header('Cache-Control: no-store, private');
 header('X-Content-Type-Options: nosniff');
 define('STOCKTOOL_INTELLIGENCE',true);
 require __DIR__.'/source_lib.php';
+require __DIR__.'/calendar_provider.php';
 if(($_SERVER['REQUEST_METHOD']??'GET')!=='GET'){
     header('Allow: GET');http_response_code(405);
     echo '{"ok":false,"error":"GET required"}';exit;
@@ -52,7 +53,7 @@ function mi_translate_deepl(array $stories): array {
     }
     return [$stories,true];
 }
-$cache=mi_cached('overview_official_v2',900,static function():?array {
+$cache=mi_cached('overview_official_plus_global_v3',900,static function():?array {
     $now=time();$stories=[];$events=[];$sources=[];
     $newsfeeds=[
         ['name'=>'Fed','url'=>'https://www.federalreserve.gov/feeds/press_all.xml'],
@@ -82,8 +83,13 @@ $cache=mi_cached('overview_official_v2',900,static function():?array {
     $bls=mi_get('https://www.bls.gov/schedule/news_release/bls.ics');
     $blsEvents=is_string($bls)?mi_parse_bls_ics($bls,$now):[];
     $sources[]=['name'=>'BLS calendar','ok'=>count($blsEvents)>0,'url'=>'https://www.bls.gov/schedule/2026/home.htm'];
-    $events=mi_unique_events(array_merge($beaEvents,$blsEvents));
-    $events=array_slice($events,0,1200);
+    $smtRaw=mi_get('https://showmytrades.com/api/public/calendar/v1?impact=all&days=30');
+    $smt=is_string($smtRaw)?mi_parse_smt($smtRaw,$now):null;
+    $providerEvents=$smt['events']??[];
+    $sources[]=['name'=>'ShowMyTrades calendar','ok'=>is_array($smt),
+      'url'=>'https://showmytrades.com/tools/economic-calendar'];
+    $events=mi_merge_calendar(array_merge($beaEvents,$blsEvents),$providerEvents,$now);
+    $events=array_slice($events,0,2400);
     // Critical: no fabricated results if official feeds are unavailable.
     // Cache even an outage/empty source response for 15 minutes to avoid
     // hammering official endpoints from shared hosting.
@@ -97,18 +103,22 @@ $cache=mi_cached('overview_official_v2',900,static function():?array {
     $hot=array_slice($hot,0,12);
     return [
         'news'=>$stories,'hot'=>$hot,'calendar'=>$events,'sources'=>$sources,
+        'calendar_attribution'=>$smt['attribution']??null,
+        'global_calendar_active'=>is_array($smt),
         'translation_enabled'=>$deeplAvailable,
         'hot_method'=>'Vlastní tematický výběr StockTool podle klíčových makro témat a stáří článku; není to žebříček popularity Forex Factory.',
-        'calendar_note'=>'Ověřené termíny BEA/BLS USA s přibližně roční historií a plánem. Actual, Forecast, Previous ani historické grafy zatím nejsou dostupné; nesmějí se dopočítat.'
+        'calendar_note'=>'Blízké události devíti hlavních měn: ShowMyTrades (s uvedením zdroje); u vybraných událostí poskytuje Actual, Forecast, Previous. BEA/BLS slouží jako doplněk historických a budoucích amerických termínů, bez konsensu.'
     ];
 });
 $payload=$cache['items'];
 mi_reply([
-    'ok'=>true,'version'=>'market-intelligence-v0.2',
+    'ok'=>true,'version'=>'market-intelligence-v0.3',
     'updated_at'=>$cache['updated_at'],'stale'=>$cache['stale'],
     'data_available'=>count($payload['news']??[])>0||count($payload['calendar']??[])>0,
     'news'=>$payload['news']??[],'hot'=>$payload['hot']??[],
     'calendar'=>$payload['calendar']??[],'sources'=>$payload['sources']??[],
+    'calendar_attribution'=>$payload['calendar_attribution']??null,
+    'global_calendar_active'=>$payload['global_calendar_active']??false,
     'translation_enabled'=>$payload['translation_enabled']??false,
     'hot_method'=>$payload['hot_method']??'',
     'calendar_note'=>$payload['calendar_note']??'Oficiální zdroje dočasně nedostupné.',
