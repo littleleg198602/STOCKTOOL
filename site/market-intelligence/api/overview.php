@@ -62,8 +62,13 @@ $cache=mi_cached('overview_official_plus_global_v3',900,static function():?array
         ['name'=>'BLS','url'=>'https://www.bls.gov/feed/bls_latest.rss'],
         ['name'=>'EIA','url'=>'https://www.eia.gov/rss/todayinenergy.xml']
     ];
+    $beaUrl='https://apps.bea.gov/API/signup/release_dates.json';
+    $blsUrl='https://www.bls.gov/schedule/news_release/bls.ics';
+    $smtUrl='https://showmytrades.com/api/public/calendar/v1?impact=all&days=30';
+    $urls=array_merge(array_column($newsfeeds,'url'),[$beaUrl,$blsUrl,$smtUrl]);
+    $loaded=mi_get_many($urls);
     foreach($newsfeeds as $feed) {
-        $raw=mi_get($feed['url']);
+        $raw=$loaded[$feed['url']]??null;
         $items=is_string($raw)?mi_parse_rss($raw,$feed['name']):[];
         $sources[]=['name'=>$feed['name'],'ok'=>(bool)count($items),'url'=>$feed['url']];
         foreach($items as $x)$stories[]=$x;
@@ -81,13 +86,13 @@ $cache=mi_cached('overview_official_plus_global_v3',900,static function():?array
     $machineCount=0;
     if(!$deeplAvailable)[$stories,$machineCount]=mi_translate_public_headlines($stories);
     $translationSource=$deeplAvailable?'DeepL':($machineCount>0?'MyMemory':'Czech topic summaries');
-    $bea=mi_get('https://apps.bea.gov/API/signup/release_dates.json');
+    $bea=$loaded[$beaUrl]??null;
     $beaEvents=is_string($bea)?mi_parse_bea($bea,$now):[];
     $sources[]=['name'=>'BEA calendar','ok'=>count($beaEvents)>0,'url'=>'https://www.bea.gov/news/schedule/icalendar'];
-    $bls=mi_get('https://www.bls.gov/schedule/news_release/bls.ics');
+    $bls=$loaded[$blsUrl]??null;
     $blsEvents=is_string($bls)?mi_parse_bls_ics($bls,$now):[];
     $sources[]=['name'=>'BLS calendar','ok'=>count($blsEvents)>0,'url'=>'https://www.bls.gov/schedule/2026/home.htm'];
-    $smtRaw=mi_get('https://showmytrades.com/api/public/calendar/v1?impact=all&days=30');
+    $smtRaw=$loaded[$smtUrl]??null;
     $smt=is_string($smtRaw)?mi_parse_smt($smtRaw,$now):null;
     $providerEvents=$smt['events']??[];
     $sources[]=['name'=>'ShowMyTrades calendar','ok'=>is_array($smt),
