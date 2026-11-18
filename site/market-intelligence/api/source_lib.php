@@ -6,6 +6,7 @@ declare(strict_types=1);
  * Feed items retain ONLY title, link, time and issuer: no copyrighted body.
  */
 if (!defined('STOCKTOOL_INTELLIGENCE')) { http_response_code(404); exit; }
+require_once __DIR__.'/localization.php';
 
 function mi_get(string $url): ?string {
     // All callers supply constant HTTPS URLs; do not accept user-supplied URLs.
@@ -99,7 +100,9 @@ function mi_translate_event(string $title): string {
     ];
     foreach($map as $original=>$cs)
         if(stripos($title,$original)!==false)return $cs;
-    return $title;
+    // Do not display unverified English as if it were Czech.
+    $label=mi_cz_event_title($title);
+    return $label!==''?$label:'Ekonomická událost: '.mi_topic($title)['topic_cs'];
 }
 function mi_rating(string $text): string {
     return mi_topic($text)['weight']===3?'high':(mi_topic($text)['weight']===2?'medium':'low');
@@ -145,7 +148,8 @@ function mi_make_story(string $title,string $link,string $time,string $source): 
         'id'=>hash('sha256',$link),'title_original'=>$title,'url'=>$link,
         'source'=>$source,'published_at'=>$ts,'topic_cs'=>$topic['topic_cs'],
         'context_cs'=>$topic['context_cs'],'weight'=>$topic['weight'],
-        'title_cs'=>null,'translated'=>false
+        'title_cs'=>mi_cz_topic_title($title,$source,$topic['topic_cs']),
+        'translated'=>false,'localization'=>'topic_summary'
     ];
 }
 function mi_parse_bea(string $json,int $now): array {
