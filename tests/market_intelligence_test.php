@@ -4,6 +4,7 @@ declare(strict_types=1);
 define('STOCKTOOL_INTELLIGENCE',true);
 require dirname(__DIR__).'/site/market-intelligence/api/source_lib.php';
 require dirname(__DIR__).'/site/market-intelligence/api/calendar_provider.php';
+require dirname(__DIR__).'/site/market-intelligence/api/translation.php';
 function check(bool $ok,string $message):void {
     if(!$ok)throw new RuntimeException('FAIL '.$message);
     echo "PASS $message\n";
@@ -102,5 +103,11 @@ $merged=mi_merge_calendar($b,$smt['events'],$today);
 check(count($merged)>=2,'Merger contains both valid international and official events');
 check(mi_parse_smt('{"error":"down"}',$today)===null,
     'External API outage is not fabricated and triggers official fallback');
+
+check(mi_parse_translation('{"responseStatus":200,"responseData":{"translatedText":"Centrální banky oznamují změny"}}')
+    ==='Centrální banky oznamují změny',
+    'Machine translation JSON result is validated and kept as Czech text');
+check(mi_parse_translation('{"responseStatus":429,"responseData":{"translatedText":"LIMIT"}}')===null,
+    'Rate-limited translation cannot replace Czech topic fallback');
 
 echo "\nMarket Intelligence offline parser regression tests passed.\n";
