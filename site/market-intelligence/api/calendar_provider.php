@@ -9,7 +9,7 @@ if(!defined('STOCKTOOL_INTELLIGENCE')){http_response_code(404);exit;}
 function mi_smt_value($v): ?string {
     if($v===null||!is_scalar($v))return null;
     $x=trim((string)$v);
-    return $x===''?null:mb_substr($x,0,60,'UTF-8');
+    return $x===''?null:(function_exists('mb_substr')?mb_substr($x,0,60,'UTF-8'):substr($x,0,120));
 }
 function mi_smt_attribution(array $body): array {
     $a=is_array($body['attribution']??null)?$body['attribution']:[];
@@ -38,7 +38,7 @@ function mi_parse_smt(string $raw,int $now): ?array {
         $ts=filter_var($row['ts']??null,FILTER_VALIDATE_INT);
         if($ts===false||$ts<$now-2*86400||$ts>$now+32*86400)continue;
         $title=trim((string)($row['title']??''));
-        if($title===''||mb_strlen($title,'UTF-8')>210)continue;
+        if($title===''||strlen($title)>600)continue;
         $originId=trim((string)($row['id']??''));
         if($originId===''||strlen($originId)>200)continue;
         $topic=mi_topic($title);
