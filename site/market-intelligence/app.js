@@ -20,7 +20,7 @@
     {id:"ny",name:"New York",country:"USA",zone:"America/New_York",start:8,end:17,topic:"USD, US500, NAS100, zlato",color:"ny"}
   ];
   const data={news:[],hot:[],calendar:[],updated_at:null,stale:false,translation_enabled:false,sources:[]};
-  let lastError="",activeTab="news";
+  let lastError="",activeTab="calendar";
 
   function el(tag,cls="",txt=""){
     const node=document.createElement(tag);
@@ -235,6 +235,7 @@
     const tabs=["news","hot","calendar","sessions"];
     if(!tabs.includes(name))return;
     activeTab=name;
+    document.body.classList.toggle("calendar-focused",name==="calendar");
     for(const key of tabs){
       const current=key===name;
       $("tab-"+key).classList.toggle("active",current);
@@ -281,7 +282,7 @@
     $("news-search").addEventListener("input",drawNews);
     $("refresh-data").addEventListener("click",()=>loadData());
     const requestedTab=new URLSearchParams(window.location.search).get("tab");
-    if(["news","hot","calendar","sessions"].includes(requestedTab))switchTab(requestedTab);
+    switchTab(["news","hot","calendar","sessions"].includes(requestedTab)?requestedTab:"calendar");
     drawSessions();loadData();
     setInterval(drawSessions,60000);
     setInterval(()=>{if(!document.hidden)loadData(true);},15*60000);
