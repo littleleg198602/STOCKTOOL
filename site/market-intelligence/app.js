@@ -19,7 +19,7 @@
     {id:"ldn",name:"Londýn",country:"Velká Británie",zone:"Europe/London",start:8,end:17,topic:"EUR, GBP, GER40, zlato",color:"ldn"},
     {id:"ny",name:"New York",country:"USA",zone:"America/New_York",start:8,end:17,topic:"USD, US500, NAS100, zlato",color:"ny"}
   ];
-  const data={news:[],hot:[],calendar:[],updated_at:null,stale:false,translation_enabled:false,sources:[]};
+  const data={news:[],hot:[],calendar:[],updated_at:null,stale:false,translation_enabled:false,translation_source:"",sources:[]};
   let lastError="",activeTab="calendar";
 
   function el(tag,cls="",txt=""){
@@ -85,7 +85,7 @@
     const source=String(item.source||"Zdroj");
     const isTranslation=!!item.translated;
     const heading=storyHeading(item);
-    const label=isTranslation?"Český překlad":"České shrnutí tématu";
+    const label=isTranslation?"Automatický český překlad":"České shrnutí tématu";
     if(hot){
       const head=el("div","hot-head");
       head.append(badge(impact),el("span","story-meta",relative(item.published_at)));
@@ -126,7 +126,7 @@
     } else for(const item of items)list.append(createStory(item));
     $("news-counter").textContent=String(items.length);
     $("news-foot").textContent="Zobrazeno "+items.length+" z "+data.news.length+
-      " zpráv · "+(data.translation_enabled?"Přeložené titulky pomocí DeepL; původní text pod nimi":"České shrnutí tématu nahoře; přesné původní znění menším písmem")+
+      " zpráv · "+(data.translation_enabled?"Automatické překlady: "+data.translation_source+"; originál menším písmem":"České tematické shrnutí; originální titulek je dostupný pod ním")+
       " · Čas Praha";
   }
   function drawHot(){
@@ -238,7 +238,7 @@
       "Poslední úspěšná aktualizace "+time+". Cache 15 minut. "+
       (data.stale?"Zobrazená data mohou být zastaralá. ":"")+
       (missing.length?"Nedostupné zdroje: "+missing.join(", ")+". ":"")+
-      (data.translation_enabled?"Úplné české překlady přes DeepL: aktivní.":"Základní čeština: ověřené tematické shrnutí; originální nadpisy jsou zachovány pro kontrolu.");
+      (data.translation_enabled?"Automatický překlad části zpráv: "+data.translation_source+". Ostatní mají české shrnutí tématu.":"České shrnutí tématu, původní anglické nadpisy ponechány pro kontrolu.");
   }
   function switchTab(name){
     const tabs=["news","hot","calendar","sessions"];
@@ -269,6 +269,7 @@
       data.calendar=Array.isArray(payload.calendar)?payload.calendar:[];
       data.updated_at=payload.updated_at;data.stale=!!payload.stale;
       data.translation_enabled=!!payload.translation_enabled;
+      data.translation_source=String(payload.translation_source||"");
       data.sources=Array.isArray(payload.sources)?payload.sources:[];
       lastError=payload.data_available?"":"Oficiální zdroje momentálně neodpovídají";
       drawNews();drawHot();publishCalendarEvents(payload);drawStats();
