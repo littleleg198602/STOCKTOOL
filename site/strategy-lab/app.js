@@ -546,6 +546,16 @@
       }).format(new Date(next.time*1000));
       target.textContent=when+" · "+(next.name_cs||next.name_original)+" · "+(next.currency||"USD")+
         " (oficiální kalendář "+next.source+")";
+      const parts=new Intl.DateTimeFormat("en-GB",{
+        timeZone:"Europe/Prague",year:"numeric",month:"2-digit",day:"2-digit"
+      }).formatToParts(new Date(next.time*1000));
+      const civil=Object.fromEntries(parts.map(x=>[x.type,x.value]));
+      const date=civil.year+"-"+civil.month+"-"+civil.day;
+      const targetUrl=new URL("../market-intelligence/",window.location.href);
+      targetUrl.searchParams.set("tab","calendar");
+      targetUrl.searchParams.set("date",date);
+      if(/^[a-f0-9]{64}$/i.test(String(next.id||"")))targetUrl.searchParams.set("event",next.id);
+      $("macro-calendar-link").href=targetUrl.href;
     }catch{
       target.textContent="Přehled makro událostí je momentálně nedostupný. Otevři samostatný News & Calendar.";
     }
