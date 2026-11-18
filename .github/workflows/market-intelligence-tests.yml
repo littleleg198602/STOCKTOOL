@@ -1,13 +1,8 @@
 name: Market Intelligence checks
 
+# Manual-only while developing this beta; prevents repeated Actions emails.
+# The FORPSI FTP deployment remains manual in deploy-test.yml.
 on:
-  push:
-    paths:
-      - 'site/market-intelligence/**'
-      - 'tests/market_intelligence_test.php'
-      - 'tests/calendar_v2_test.cjs'
-      - 'tests/calendar_v2_ui_test.cjs'
-      - '.github/workflows/market-intelligence-tests.yml'
   workflow_dispatch:
 
 permissions:
