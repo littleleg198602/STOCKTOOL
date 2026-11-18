@@ -155,3 +155,30 @@
  .cal-detail-wrap{flex-direction:column}
  .cal-detail-side{min-width:0}
 }
+
+
+/* Calendar-first working mode: maximize trading rows visible above the fold. */
+body.calendar-focused .hero{padding:19px 0 14px;gap:18px}
+body.calendar-focused .hero h1{font-size:clamp(24px,2.7vw,39px);margin:5px 0 7px;letter-spacing:-.05em}
+body.calendar-focused .hero p{display:none}
+body.calendar-focused .hero-clock{min-width:190px;padding:9px 14px;gap:2px;border-radius:9px}
+body.calendar-focused .hero-clock strong{font-size:23px}
+body.calendar-focused .hero-clock span{font-size:9px}
+body.calendar-focused .hero-clock small{font-size:9px}
+body.calendar-focused .disclaimer{padding:9px 13px;margin:0 0 10px;font-size:10px;line-height:1.5}
+body.calendar-focused .overview{display:none}
+body.calendar-focused .tabnav{margin:0 0 12px}
+body.calendar-focused .tab{padding:9px 17px;font-size:11px}
+body.calendar-focused .tab-icon{font-size:15px}
+body.calendar-focused .calendar-heading{margin:0 0 11px}
+body.calendar-focused .calendar-heading h2{font-size:24px;margin:3px 0}
+body.calendar-focused .calendar-heading p{display:none}
+body.calendar-focused .calendar-heading .section-code{font-size:9px}
+body.calendar-focused .cal-table-scroll{max-height:min(73vh,820px)}
+@media(max-width:700px){
+ body.calendar-focused .hero{padding:12px 0}
+ body.calendar-focused .hero-clock{display:none}
+ body.calendar-focused .hero h1{font-size:28px}
+ body.calendar-focused .tab{padding:10px 9px}
+ body.calendar-focused .calendar-heading h2{font-size:22px}
+}
