@@ -157,7 +157,7 @@ function mi_parse_bea(string $json,int $now): array {
         foreach($data['release_dates'] as $str){
             try{$dt=new DateTimeImmutable((string)$str);}catch(Throwable $e){continue;}
             $ts=$dt->getTimestamp();
-            if($ts<$now-14*86400||$ts>$now+65*86400)continue;
+            if($ts<$now-390*86400||$ts>$now+400*86400)continue;
             $name=(string)$name;
             $topic=mi_topic($name);
             $events[]=[
@@ -197,7 +197,7 @@ function mi_parse_bls_ics(string $ics,int $now): array {
         }catch(Throwable $e){continue;}
         if(!$dt)continue;
         $ts=$dt->getTimestamp();
-        if($ts<$now-14*86400||$ts>$now+65*86400)continue;
+        if($ts<$now-390*86400||$ts>$now+400*86400)continue;
         $topic=mi_topic($name);
         $events[]=[
             'id'=>hash('sha256','BLS|'.$name.'|'.$ts),
